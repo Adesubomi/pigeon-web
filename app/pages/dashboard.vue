@@ -9,19 +9,14 @@
         <h1 class="text-[15px] font-semibold text-navy tracking-tight flex-1">Dashboard</h1>
 
         <!-- Date range -->
-        <div class="flex items-center gap-1.5 bg-sand-50 border border-sand-200 rounded-lg px-3 py-1.5">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="flex-shrink-0 text-sand-400">
-            <rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
-            <path d="M4 1v2M8 1v2M1 5h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-          </svg>
+        <div class="flex items-center gap-1.5 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2">
+          <PhCalendarBlank class="size-3.5 shrink-0 text-sand-400" />
           <span class="text-xs text-sand-500">Last 7 days</span>
         </div>
 
         <!-- Export -->
-        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-3.5 py-2 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-4 py-2.5 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
+          <PhDownloadSimple class="size-3.5 shrink-0" />
           Export
         </button>
       </header>
@@ -48,24 +43,7 @@
                 v-for="ep in displayedEndpoints"
                 :key="ep.id"
                 :endpoint="ep"
-              >
-                <span class="text-xs font-mono" :class="ep.status === 'inactive' ? 'text-sand-400' : 'text-sand-800'">
-                  {{ ep.events != null ? ep.events.toLocaleString() : '—' }}
-                </span>
-                <div class="ep-actions">
-                  <button class="icon-btn" title="Copy URL">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <rect x="1" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1"/>
-                      <path d="M3 3V2a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H7" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-                    </svg>
-                  </button>
-                  <button class="icon-btn" title="Go to endpoint">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                      <path d="M2 8l6-6M4 2h4v4" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-              </EndpointListItem>
+              />
             </div>
             <NuxtLink v-if="endpoints.length > 5" to="/endpoints" class="view-all-link">
               View all {{ endpoints.length }} endpoints →
@@ -83,48 +61,7 @@
               >
                 <!-- Device icon -->
                 <div class="device-icon">
-                  <!-- iOS phone -->
-                  <template v-if="dev.icon === 'phone-ios'">
-                    <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-                      <rect x="1" y="1" width="10" height="12" rx="2.5" stroke="currentColor" stroke-width="1.2"/>
-                      <path d="M4.5 2.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                      <circle cx="6" cy="11.5" r="0.8" fill="currentColor"/>
-                    </svg>
-                  </template>
-                  <!-- Android phone -->
-                  <template v-else-if="dev.icon === 'phone-android'">
-                    <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
-                      <rect x="1" y="2" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.2"/>
-                      <path d="M4 2V1M8 2V1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                      <circle cx="6" cy="10.5" r="0.8" fill="currentColor"/>
-                    </svg>
-                  </template>
-                  <!-- Browser -->
-                  <template v-else-if="dev.icon === 'browser'">
-                    <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
-                      <rect x="1" y="1" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/>
-                      <path d="M1 4h12" stroke="currentColor" stroke-width="1.2"/>
-                      <circle cx="3.5" cy="2.5" r="0.6" fill="currentColor"/>
-                      <circle cx="5.5" cy="2.5" r="0.6" fill="currentColor"/>
-                    </svg>
-                  </template>
-                  <!-- Server -->
-                  <template v-else-if="dev.icon === 'server'">
-                    <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
-                      <rect x="1" y="1" width="12" height="4" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
-                      <rect x="1" y="7" width="12" height="4" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
-                      <circle cx="10.5" cy="3" r="0.7" fill="currentColor"/>
-                      <circle cx="10.5" cy="9" r="0.7" fill="currentColor"/>
-                    </svg>
-                  </template>
-                  <!-- Terminal -->
-                  <template v-else-if="dev.icon === 'terminal'">
-                    <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
-                      <rect x="1" y="1" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/>
-                      <path d="M4 4.5l2.5 2L4 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M8 8.5h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                    </svg>
-                  </template>
+                  <component :is="deviceIcons[dev.icon]" class="size-3.5" />
                 </div>
 
                 <!-- Name + platform -->
@@ -172,9 +109,7 @@
             <span class="text-[10px] text-sand-500 truncate flex-1">{{ ev.endpoint }}</span>
             <span class="text-[10px] text-sand-400">{{ ev.time }}</span>
             <button class="replay-btn" title="Replay">
-              <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                <path d="M1.5 4.5A3 3 0 107 3M7 1v2H5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <PhArrowsClockwise class="size-[11px]" />
             </button>
           </div>
         </div>
@@ -186,6 +121,16 @@
 </template>
 
 <script setup lang="ts">
+import {
+  PhArrowsClockwise,
+  PhBrowser,
+  PhCalendarBlank,
+  PhDeviceMobile,
+  PhDownloadSimple,
+  PhHardDrives,
+  PhTerminalWindow,
+} from '@phosphor-icons/vue'
+
 definePageMeta({ layout: 'default' })
 
 interface Endpoint {
@@ -203,6 +148,14 @@ interface Device {
   icon: 'phone-ios' | 'phone-android' | 'browser' | 'server' | 'terminal'
   conn: 'connected' | 'degraded' | 'disconnected'
 }
+
+const deviceIcons = {
+  'phone-ios': PhDeviceMobile,
+  'phone-android': PhDeviceMobile,
+  browser: PhBrowser,
+  server: PhHardDrives,
+  terminal: PhTerminalWindow,
+} as const
 
 const endpoints = ref<Endpoint[]>([
   { id: 'str', name: 'Stripe webhooks',        url: 'https://relay.pigeon.sh/e/str_x9kq2mj4p', status: 'active',   events: 4210 },
@@ -260,20 +213,6 @@ const displayedDevices = computed(() => devices.value.slice(0, 5))
 }
 .view-all-link:hover { background: #f5f4f0; border-color: #b4b2a9; }
 
-/* ── Endpoint action buttons ── */
-.ep-actions { display: flex; gap: 3px; }
-
-.icon-btn {
-  width: 30px; height: 30px;
-  border: 0.5px solid #d3d1c7;
-  background: white;
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #888780;
-  transition: background 0.1s, color 0.1s;
-}
-.icon-btn:hover { background: #f5f4f0; color: #1a1a2e; }
-
 /* ── Device cards ── */
 .device-card {
   background: white;
@@ -325,7 +264,7 @@ const displayedDevices = computed(() => devices.value.slice(0, 5))
 .method-badge.put  { background: #faeeda; color: #854f0b; }
 
 .replay-btn {
-  width: 22px; height: 22px;
+  width: 26px; height: 26px;
   border: 0.5px solid #d3d1c7;
   background: none; border-radius: 5px;
   display: flex; align-items: center; justify-content: center;

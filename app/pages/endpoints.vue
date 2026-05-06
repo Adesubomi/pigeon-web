@@ -9,19 +9,14 @@
         <h1 class="text-[15px] font-semibold text-navy tracking-tight flex-1">Endpoints</h1>
 
         <!-- Search -->
-        <div class="flex items-center gap-1.5 bg-sand-50 border border-sand-200 rounded-lg px-3 py-1.5 w-48">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" class="flex-shrink-0 text-sand-400">
-            <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2"/>
-            <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-          </svg>
+        <div class="flex items-center gap-1.5 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 w-48">
+          <PhMagnifyingGlass class="size-3.5 shrink-0 text-sand-400" />
           <span class="text-xs text-sand-500">Search endpoints…</span>
         </div>
 
         <!-- New endpoint -->
-        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-3.5 py-2 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
+        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-4 py-2.5 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
+          <PhPlus class="size-3.5 shrink-0" />
           New endpoint
         </button>
       </header>
@@ -49,32 +44,11 @@
             v-for="ep in filteredEndpoints"
             :key="ep.id"
             :endpoint="ep"
+            show-device-count
+            show-playback-control
+            show-delete-control
             @click="selectedId = ep.id"
-          >
-            <DeviceBadge :count="ep.devices" :error="ep.status === 'error'" />
-
-            <span
-              class="text-xs font-mono"
-              :class="ep.status === 'inactive' ? 'text-sand-400' : 'text-sand-800'"
-            >{{ ep.eventsToday != null ? ep.eventsToday.toLocaleString() : '—' }}</span>
-
-            <div class="ep-actions">
-              <button class="icon-btn" :title="ep.status === 'inactive' ? 'Resume' : 'Pause'">
-                <svg v-if="ep.status === 'inactive'" width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M3 2l5 3-5 3V2z" fill="currentColor"/>
-                </svg>
-                <svg v-else width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <rect x="2" y="1.5" width="2.5" height="7" rx="0.8" fill="currentColor"/>
-                  <rect x="5.5" y="1.5" width="2.5" height="7" rx="0.8" fill="currentColor"/>
-                </svg>
-              </button>
-              <button class="icon-btn" title="Delete">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3h6M3.5 3V2h3v1M4 5v3M6 5v3M2.5 3l.5 5h4l.5-5" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </EndpointListItem>
+          />
         </div>
 
       </div>
@@ -97,10 +71,7 @@
           </div>
           <p class="text-[11px] text-sand-500 font-mono break-all leading-relaxed">{{ selected.url }}</p>
           <button class="mt-1.5 flex items-center gap-1 text-[11px] text-brand-500 cursor-pointer bg-transparent border-none p-0 font-sans hover:underline">
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-              <rect x="1" y="3" width="7" height="7" rx="1.5" stroke="#534ab7" stroke-width="1.1"/>
-              <path d="M3 3V2a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H8" stroke="#534ab7" stroke-width="1.1"/>
-            </svg>
+            <PhCopy class="size-[11px] shrink-0" />
             Copy URL
           </button>
         </div>
@@ -114,10 +85,7 @@
 
             <div class="device-row">
               <div class="device-icon">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <rect x="1" y="2" width="12" height="8" rx="1.5" stroke="#534ab7" stroke-width="1.2"/>
-                  <path d="M4 10v2M10 10v2M3 12h8" stroke="#534ab7" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
+                <PhDesktop class="size-3.5" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-medium text-navy">MacBook Pro (Ade)</p>
@@ -128,10 +96,7 @@
 
             <div class="device-row">
               <div class="device-icon">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <rect x="1" y="2" width="12" height="8" rx="1.5" stroke="#534ab7" stroke-width="1.2"/>
-                  <path d="M4 10v2M10 10v2M3 12h8" stroke="#534ab7" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
+                <PhDesktop class="size-3.5" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-medium text-navy">Mac mini (office)</p>
@@ -141,9 +106,7 @@
             </div>
 
             <button class="connect-btn">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M5 2v6M2 5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-              </svg>
+              <PhPlus class="size-3 shrink-0" />
               Connect device
             </button>
           </div>
@@ -174,9 +137,7 @@
               <span class="text-[10px]" :class="ev.status < 400 ? 'text-success-600' : 'text-danger-500'">{{ ev.status }}</span>
               <span class="text-[10px] text-sand-500 flex-shrink-0">{{ ev.time }}</span>
               <button class="replay-btn" title="Replay">
-                <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                  <path d="M1.5 4.5A3 3 0 107 3M7 1v2H5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <PhArrowsClockwise class="size-[11px]" />
               </button>
             </div>
           </div>
@@ -187,12 +148,7 @@
       <!-- Empty state -->
       <div v-else class="flex-1 flex flex-col items-center justify-center gap-2 text-sand-500 p-10 text-center">
         <div class="w-10 h-10 bg-sand-50 rounded-[10px] flex items-center justify-center">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect x="1" y="1" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="10" y="1" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="1" y="10" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.3"/>
-            <rect x="10" y="10" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.3"/>
-          </svg>
+          <PhStack class="size-[18px]" />
         </div>
         <p class="text-xs">Select an endpoint to view details</p>
       </div>
@@ -203,6 +159,15 @@
 </template>
 
 <script setup lang="ts">
+import {
+  PhArrowsClockwise,
+  PhCopy,
+  PhDesktop,
+  PhMagnifyingGlass,
+  PhPlus,
+  PhStack,
+} from '@phosphor-icons/vue'
+
 definePageMeta({ layout: 'default' })
 
 interface Endpoint {
@@ -249,7 +214,7 @@ const selected = computed(() => endpoints.value.find(e => e.id === selectedId.va
   border: 0.5px solid #d3d1c7;
   background: white;
   border-radius: 20px;
-  padding: 4px 11px;
+  padding: 5px 13px;
   font-size: 11px;
   color: #5f5e5a;
   cursor: pointer;
@@ -259,20 +224,6 @@ const selected = computed(() => endpoints.value.find(e => e.id === selectedId.va
 .filter-chip:hover { background: #f5f4f0; }
 .filter-chip.active { background: #1a1a2e; color: #e8e4ff; border-color: transparent; }
 
-
-.ep-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; }
-:deep(.endpoint-item:hover) .ep-actions { opacity: 1; }
-
-.icon-btn {
-  width: 30px; height: 30px;
-  border: 0.5px solid #d3d1c7;
-  background: white;
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #888780;
-  transition: background 0.1s, color 0.1s;
-}
-.icon-btn:hover { background: #f5f4f0; color: #1a1a2e; }
 
 /* Panel */
 .panel-section {
@@ -342,7 +293,7 @@ const selected = computed(() => endpoints.value.find(e => e.id === selectedId.va
   background: none;
   border: 0.5px dashed #d3d1c7;
   border-radius: 8px;
-  padding: 7px;
+  padding: 9px;
   font-size: 11px;
   color: #9e9c96;
   cursor: pointer;
@@ -369,7 +320,7 @@ const selected = computed(() => endpoints.value.find(e => e.id === selectedId.va
 .method-badge.put  { background: #faeeda; color: #854f0b; }
 
 .replay-btn {
-  width: 22px; height: 22px;
+  width: 26px; height: 26px;
   border: 0.5px solid #d3d1c7;
   background: none; border-radius: 5px;
   display: flex; align-items: center; justify-content: center;
