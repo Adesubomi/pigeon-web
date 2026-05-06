@@ -85,7 +85,7 @@
     </div>
 
     <!-- ── Recent Events panel ── -->
-    <aside class="w-95 min-w-95 bg-white border-l border-sand-200 flex flex-col overflow-hidden">
+    <aside class="w-100 min-w-100 bg-white border-l border-sand-200 flex flex-col overflow-hidden">
 
       <!-- Panel header -->
       <div class="px-5 py-5 border-b border-sand-200 shrink-0 flex items-center justify-between">
