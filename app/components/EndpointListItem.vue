@@ -3,7 +3,21 @@
     <div class="status-pill" :class="endpoint.status"></div>
 
     <div class="flex-1 min-w-0">
-      <p class="ep-name" :class="{ muted: endpoint.status === 'inactive' }">{{ endpoint.name }}</p>
+      <NuxtLink
+        v-if="to"
+        class="ep-name-link"
+        :to="to"
+      >
+        <span class="ep-name" :class="{ muted: endpoint.status === 'inactive' }">{{ endpoint.name }}</span>
+      </NuxtLink>
+      <button
+        v-else
+        class="ep-name-link ep-name-button"
+        type="button"
+        @click="$emit('open', endpoint)"
+      >
+        <span class="ep-name" :class="{ muted: endpoint.status === 'inactive' }">{{ endpoint.name }}</span>
+      </button>
       <div class="ep-url-row">
         <span class="ep-url">{{ endpoint.url }}</span>
         <button
@@ -43,14 +57,17 @@
           <PhPause v-else class="size-3" weight="fill" />
         </button>
 
-        <button
+        <a
           v-if="showOpenControl"
           class="icon-btn"
-          title="Go to endpoint"
-          @click.stop="$emit('open', endpoint)"
+          :href="previewUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open monitoring screen"
+          aria-label="Open monitoring screen"
         >
           <PhArrowSquareOut class="size-3" />
-        </button>
+        </a>
 
         <button
           v-if="showDeleteControl"
@@ -69,6 +86,7 @@
 import { PhArrowSquareOut, PhCopy, PhPause, PhPlay, PhTrash } from '@phosphor-icons/vue'
 
 interface EndpointListEndpoint {
+  id?: string
   name: string
   url: string
   status: 'active' | 'inactive' | 'error'
@@ -79,6 +97,7 @@ interface EndpointListEndpoint {
 
 const props = withDefaults(defineProps<{
   endpoint: {
+    id?: string
     name: string
     url: string
     status: 'active' | 'inactive' | 'error'
@@ -92,6 +111,8 @@ const props = withDefaults(defineProps<{
   showCopyControl?: boolean
   showOpenControl?: boolean
   showDeleteControl?: boolean
+  previewUrl?: string
+  to?: string
 }>(), {
   showDeviceCount: false,
   showEventCount: true,
@@ -99,6 +120,8 @@ const props = withDefaults(defineProps<{
   showCopyControl: true,
   showOpenControl: true,
   showDeleteControl: false,
+  previewUrl: undefined,
+  to: undefined,
 })
 
 defineEmits<{
@@ -111,6 +134,7 @@ defineEmits<{
 const deviceCount = computed(() => props.endpoint.devices ?? 0)
 const eventCount = computed(() => props.endpoint.eventsToday ?? props.endpoint.events ?? null)
 const formattedEventCount = computed(() => eventCount.value == null ? '-' : eventCount.value.toLocaleString())
+const previewUrl = computed(() => props.previewUrl ?? props.endpoint.url)
 </script>
 
 <style scoped>
@@ -122,7 +146,6 @@ const formattedEventCount = computed(() => eventCount.value == null ? '-' : even
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
   transition: border-color 0.15s;
 }
 .endpoint-item:hover { border-color: #b4b2a9; }
@@ -136,6 +159,31 @@ const formattedEventCount = computed(() => eventCount.value == null ? '-' : even
 .status-pill.inactive { background: #b4b2a9; }
 .status-pill.error    { background: #e24b4a; box-shadow: 0 0 0 3px rgba(226,75,74,0.12); }
 
+.ep-name-link {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+}
+.ep-name-link:hover .ep-name,
+.ep-name-link:focus-visible .ep-name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ep-name-link:focus-visible {
+  outline: 2px solid rgba(83, 74, 183, 0.22);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.ep-name-button {
+  font-family: inherit;
+}
 .ep-name {
   font-size: 13px;
   font-weight: 500;
@@ -195,6 +243,7 @@ const formattedEventCount = computed(() => eventCount.value == null ? '-' : even
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: #888780;
+  text-decoration: none;
   transition: background 0.1s, color 0.1s;
 }
 .icon-btn:hover { background: #f5f4f0; color: #1a1a2e; }

@@ -1,0 +1,3 @@
+<template>
+  <EndpointDetailPanel />
+</template>

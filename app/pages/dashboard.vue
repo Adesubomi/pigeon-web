@@ -2,7 +2,7 @@
   <div class="flex flex-1 overflow-hidden">
 
     <!-- ── Main content area ── -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 2xl:flex-[2] flex flex-col overflow-hidden">
 
       <!-- Topbar -->
       <header class="px-7 pt-6 pb-0 flex items-center gap-3 flex-shrink-0">
@@ -14,10 +14,14 @@
           <span class="text-xs text-sand-500">Last 7 days</span>
         </div>
 
-        <!-- Export -->
-        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-4 py-2.5 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
-          <PhDownloadSimple class="size-3.5 shrink-0" />
-          Export
+        <!-- Activity panel toggle -->
+        <button
+          class="activity-toggle-btn 2xl:hidden"
+          :class="{ active: isDashboardPanelOpen }"
+          aria-label="Toggle activity panel"
+          @click="toggleActivityPanel"
+        >
+          <PhSidebarSimple class="sidebar-toggle-icon size-3.5 shrink-0" />
         </button>
       </header>
 
@@ -43,6 +47,8 @@
                 v-for="ep in displayedEndpoints"
                 :key="ep.id"
                 :endpoint="ep"
+                :class="{ selected: selectedEndpointId === ep.id }"
+                :to="`/dashboard/endpoints/${ep.id}`"
               />
             </div>
             <NuxtLink v-if="endpoints.length > 5" to="/endpoints" class="view-all-link">
@@ -84,62 +90,47 @@
       </div>
     </div>
 
-    <!-- ── Recent Events panel ── -->
-    <aside class="w-100 min-w-100 bg-white border-l border-sand-200 flex flex-col overflow-hidden">
-
-      <!-- Panel header -->
-      <div class="px-5 py-5 border-b border-sand-200 shrink-0 flex items-center justify-between">
-        <p class="text-[13px] font-semibold text-navy">Recent Events</p>
-        <span class="text-[10px] text-brand-500 cursor-pointer hover:underline">View all</span>
-      </div>
-
-      <!-- Events list -->
-      <div class="flex-1 overflow-y-auto">
-        <div
-          v-for="ev in recentEvents"
-          :key="ev.path + ev.time"
-          class="event-item"
-        >
-          <div class="flex items-center gap-2.5 mb-1.5">
-            <span class="method-badge" :class="ev.method.toLowerCase()">{{ ev.method }}</span>
-            <span class="text-[12px] font-mono text-sand-800 flex-1 truncate">{{ ev.path }}</span>
-            <span class="text-[11px] font-mono font-medium" :class="ev.status < 400 ? 'text-success-600' : 'text-danger-500'">{{ ev.status }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] text-sand-500 truncate flex-1">{{ ev.endpoint }}</span>
-            <span class="text-[10px] text-sand-400">{{ ev.time }}</span>
-            <button class="replay-btn" title="Replay">
-              <PhArrowsClockwise class="size-[11px]" />
-            </button>
-          </div>
-        </div>
-      </div>
-
+    <!-- ── Largest-screen activity panel ── -->
+    <aside class="hidden 2xl:flex 2xl:flex-[1] min-w-[320px] bg-white border-l border-sand-200 flex-col overflow-hidden">
+      <NuxtPage v-if="hasDetailRoute" />
+      <DashboardActivityPanel v-else :events="recentEvents" />
     </aside>
+
+    <!-- ── Activity drawer below largest screens ── -->
+    <Teleport to="body">
+      <Transition name="drawer">
+        <div v-if="isDashboardPanelOpen" class="2xl:hidden fixed inset-0 z-50">
+          <button
+            class="absolute inset-0 bg-black/45 border-0 cursor-default"
+            aria-label="Close dashboard panel"
+            @click="closeDashboardPanel"
+          />
+
+          <aside class="drawer-panel absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col overflow-hidden">
+            <NuxtPage v-if="hasDetailRoute" />
+            <DashboardActivityPanel v-else :events="recentEvents" show-close @close="closeDashboardPanel" />
+          </aside>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
 
 <script setup lang="ts">
 import {
-  PhArrowsClockwise,
   PhBrowser,
   PhCalendarBlank,
   PhDeviceMobile,
-  PhDownloadSimple,
   PhHardDrives,
+  PhSidebarSimple,
   PhTerminalWindow,
 } from '@phosphor-icons/vue'
+import type {Event} from "~/domains/event/event.type";
 
 definePageMeta({ layout: 'default' })
 
-interface Endpoint {
-  id: string
-  name: string
-  url: string
-  status: 'active' | 'inactive'
-  events: number | null
-}
+const route = useRoute()
 
 interface Device {
   id: string
@@ -157,13 +148,7 @@ const deviceIcons = {
   terminal: PhTerminalWindow,
 } as const
 
-const endpoints = ref<Endpoint[]>([
-  { id: 'str', name: 'Stripe webhooks',        url: 'https://relay.pigeon.sh/e/str_x9kq2mj4p', status: 'active',   events: 4210 },
-  { id: 'gh',  name: 'GitHub CI events',       url: 'https://relay.pigeon.sh/e/gh_8wn3rlv0c',  status: 'active',   events: 1520 },
-  { id: 'sh',  name: 'Shopify orders',         url: 'https://relay.pigeon.sh/e/sh_4cv7xmk1z',  status: 'active',   events: 2870 },
-  { id: 'rs',  name: 'Resend email events',    url: 'https://relay.pigeon.sh/e/rs_2bf9dkw5m',  status: 'active',   events: 340  },
-  { id: 'ln',  name: 'Linear issues (paused)', url: 'https://relay.pigeon.sh/e/ln_7hq6tjy9r',  status: 'inactive', events: null },
-])
+const { endpoints, getEvents } = useEndpoints()
 
 const devices = ref<Device[]>([
   { id: 'ios', name: 'iOS App',      platform: 'iPhone 15 · iOS 17.4',  icon: 'phone-ios',     conn: 'connected'    },
@@ -173,21 +158,36 @@ const devices = ref<Device[]>([
   { id: 'cli', name: 'CLI Tool',    platform: 'macOS 14 · arm64',       icon: 'terminal',      conn: 'degraded'     },
 ])
 
-const recentEvents = [
-  { method: 'POST', path: '/payment.succeeded',    status: 200, endpoint: 'Stripe webhooks',      time: '2m ago'  },
-  { method: 'POST', path: '/charge.failed',         status: 500, endpoint: 'Stripe webhooks',      time: '5m ago'  },
-  { method: 'POST', path: '/push_event',            status: 200, endpoint: 'GitHub CI events',     time: '8m ago'  },
-  { method: 'POST', path: '/invoice.paid',          status: 200, endpoint: 'Stripe webhooks',      time: '12m ago' },
-  { method: 'POST', path: '/orders/create',         status: 200, endpoint: 'Shopify orders',       time: '15m ago' },
-  { method: 'POST', path: '/subscription.updated',  status: 200, endpoint: 'Stripe webhooks',      time: '18m ago' },
-  { method: 'POST', path: '/email.delivered',       status: 502, endpoint: 'Resend email events',  time: '21m ago' },
-  { method: 'POST', path: '/check_run.completed',   status: 200, endpoint: 'GitHub CI events',     time: '26m ago' },
-  { method: 'GET',  path: '/health',                status: 200, endpoint: 'Stripe webhooks',      time: '30m ago' },
-  { method: 'POST', path: '/orders/fulfilled',      status: 200, endpoint: 'Shopify orders',       time: '34m ago' },
-]
-
 const displayedEndpoints = computed(() => endpoints.value.slice(0, 5))
 const displayedDevices = computed(() => devices.value.slice(0, 5))
+const recentEvents = computed<Event[]>(() => endpoints.value
+  .flatMap(endpoint => getEvents(endpoint.id).map(event => ({
+    id: event.id,
+    endpointId: endpoint.id,
+    method: event.method,
+    path: event.path,
+    endpoint: endpoint.name,
+    time: event.time,
+    size: event.size,
+  })))
+  .slice(0, 10))
+const selectedEndpointId = computed(() => (
+  route.path.startsWith('/dashboard/endpoints/') && typeof route.params.endpoint_id === 'string'
+    ? route.params.endpoint_id
+    : ''
+))
+const isActivityRoute = computed(() => route.path.startsWith('/dashboard/activity'))
+const isEndpointRoute = computed(() => route.path.startsWith('/dashboard/endpoints/'))
+const hasDetailRoute = computed(() => route.path.startsWith('/dashboard/activity/events/') || isEndpointRoute.value)
+const isDashboardPanelOpen = computed(() => isActivityRoute.value || isEndpointRoute.value)
+
+function toggleActivityPanel() {
+  navigateTo(isDashboardPanelOpen.value ? '/dashboard' : '/dashboard/activity')
+}
+
+function closeDashboardPanel() {
+  navigateTo('/dashboard')
+}
 </script>
 
 <style scoped>
@@ -212,6 +212,44 @@ const displayedDevices = computed(() => devices.value.slice(0, 5))
   transition: background 0.1s, border-color 0.1s;
 }
 .view-all-link:hover { background: #f5f4f0; border-color: #b4b2a9; }
+
+:deep(.endpoint-item.selected) {
+  border-color: #534ab7;
+  box-shadow: 0 0 0 1px rgba(83, 74, 183, 0.14);
+}
+
+.activity-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border: 0.5px solid #d3d1c7;
+  background: white;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #888780;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.activity-toggle-btn:hover {
+  background: #f5f4f0;
+  color: #1a1a2e;
+}
+.activity-toggle-btn.active {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+  color: #e8e4ff;
+}
+.sidebar-toggle-icon {
+  transform: scaleX(-1);
+}
+
+@media (min-width: 1536px) {
+  .activity-toggle-btn {
+    display: none;
+  }
+}
 
 /* ── Device cards ── */
 .device-card {
@@ -244,32 +282,20 @@ const displayedDevices = computed(() => devices.value.slice(0, 5))
 .conn-square.degraded     { background: #e08c2e; }
 .conn-square.disconnected { background: #e24b4a; }
 
-/* ── Recent events panel ── */
-.event-item {
-  padding: 14px 20px;
-  border-bottom: 0.5px solid #f0eee8;
-  transition: background 0.1s;
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.16s ease;
 }
-.event-item:hover { background: #fafaf8; }
-.event-item:last-child { border-bottom: none; }
-
-.method-badge {
-  font-size: 10px; font-weight: 500;
-  font-family: 'IBM Plex Mono', monospace;
-  padding: 2px 6px; border-radius: 4px;
-  min-width: 36px; text-align: center; flex-shrink: 0;
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
 }
-.method-badge.post { background: #eaf3de; color: #3b6d11; }
-.method-badge.get  { background: #e6f1fb; color: #185fa5; }
-.method-badge.put  { background: #faeeda; color: #854f0b; }
-
-.replay-btn {
-  width: 26px; height: 26px;
-  border: 0.5px solid #d3d1c7;
-  background: none; border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; color: #9e9c96;
-  transition: color 0.1s, background 0.1s;
+.drawer-enter-active .drawer-panel,
+.drawer-leave-active .drawer-panel {
+  transition: transform 0.18s ease;
 }
-.replay-btn:hover { color: #1a1a2e; background: #f5f4f0; }
+.drawer-enter-from .drawer-panel,
+.drawer-leave-to .drawer-panel {
+  transform: translateX(100%);
+}
 </style>
