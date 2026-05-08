@@ -25,22 +25,12 @@
         <span class="ml-auto bg-brand-700 text-brand-300 text-[10px] font-medium px-1.5 py-px rounded-full font-mono">5</span>
       </NuxtLink>
 
-      <a href="#" class="nav-item">
+      <NuxtLink to="/events" class="nav-item" active-class="active">
         <PhListBullets class="size-4 shrink-0" />
         Event log
-      </a>
-
-      <a href="#" class="nav-item">
-        <PhClockCounterClockwise class="size-4 shrink-0" />
-        Delivery history
-      </a>
+      </NuxtLink>
 
       <p class="nav-label mt-4">Account</p>
-
-      <a href="#" class="nav-item">
-        <PhDesktop class="size-4 shrink-0" />
-        Devices
-      </a>
 
       <a href="#" class="nav-item">
         <PhGearSix class="size-4 shrink-0" />
@@ -64,8 +54,6 @@
 
 <script setup lang="ts">
 import {
-  PhClockCounterClockwise,
-  PhDesktop,
   PhGearSix,
   PhListBullets,
   PhPaperPlaneTilt,

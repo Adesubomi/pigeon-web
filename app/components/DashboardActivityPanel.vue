@@ -4,7 +4,7 @@
       <p class="text-[13px] font-semibold text-navy">Activity</p>
 
       <div class="flex items-center gap-2">
-        <span class="text-[10px] text-brand-500 cursor-pointer hover:underline">View all</span>
+        <NuxtLink to="/events" class="text-[10px] text-brand-500 cursor-pointer hover:underline">View all</NuxtLink>
         <button
           v-if="showClose"
           class="panel-icon-btn"

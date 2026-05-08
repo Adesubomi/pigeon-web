@@ -2,7 +2,7 @@
   <section class="flex h-full flex-col overflow-hidden">
     <header class="px-5 py-5 border-b border-sand-200 flex-shrink-0">
       <div class="flex items-center justify-between gap-3">
-        <button class="panel-icon-btn" aria-label="Back to endpoint details" @click="navigateTo(backPath)">
+        <button class="panel-icon-btn" :aria-label="backLabel" @click="navigateTo(backPath)">
           <PhArrowLeft class="size-3.5" />
         </button>
 
@@ -28,7 +28,7 @@
           <div class="detail-metrics">
             <div class="metric-cell">
               <span>Received</span>
-              <strong>{{ event.time }}</strong>
+              <strong>{{ event.receivedAt }}</strong>
             </div>
             <div class="metric-cell">
               <span>Size</span>
@@ -38,6 +38,30 @@
               <span>Source</span>
               <strong>{{ event.source }}</strong>
             </div>
+          </div>
+
+          <div class="event-actions">
+            <button
+              class="event-action-btn"
+              :class="{ copied: copiedCurl }"
+              :aria-label="curlLabel"
+              :title="curlLabel"
+              @click="copyCurl"
+            >
+              <PhCode class="size-3.5 shrink-0" />
+              {{ copiedCurl ? 'Copied' : 'Copy cURL' }}
+            </button>
+
+            <button
+              class="event-action-btn primary"
+              :class="{ published }"
+              :aria-label="publishLabel"
+              :title="publishLabel"
+              @click="publishEvent"
+            >
+              <PhBroadcast class="size-3.5 shrink-0" />
+              {{ published ? 'Published' : 'Publish' }}
+            </button>
           </div>
         </section>
 
@@ -97,8 +121,28 @@
               </thead>
               <tbody>
                 <tr v-for="header in headerRows" :key="header.key">
-                  <td>{{ header.key }}</td>
-                  <td>{{ header.value }}</td>
+                  <td>
+                    <button
+                      class="header-copy-cell"
+                      :class="{ copied: copiedHeaderCell === headerCopyId(header.key, 'key') }"
+                      :aria-label="headerCopyLabel(header.key, 'key')"
+                      :title="headerCopyLabel(header.key, 'key')"
+                      @click="copyHeaderCell(header.key, header.key, 'key')"
+                    >
+                      {{ header.key }}
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      class="header-copy-cell"
+                      :class="{ copied: copiedHeaderCell === headerCopyId(header.key, 'value') }"
+                      :aria-label="headerCopyLabel(header.key, 'value')"
+                      :title="headerCopyLabel(header.key, 'value')"
+                      @click="copyHeaderCell(header.value, header.key, 'value')"
+                    >
+                      {{ header.value }}
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -119,6 +163,8 @@
 <script setup lang="ts">
 import {
   PhArrowLeft,
+  PhBroadcast,
+  PhCode,
   PhCopy,
   PhX,
 } from '@phosphor-icons/vue'
@@ -129,6 +175,7 @@ const { getEndpoint, getEvent, getEventContext } = useEndpoints()
 
 const isDashboardRoute = computed(() => route.path.startsWith('/dashboard'))
 const isDashboardActivityEventRoute = computed(() => route.path.startsWith('/dashboard/activity/events/'))
+const isEventLogRoute = computed(() => route.path.startsWith('/events/'))
 const requestedEventId = computed(() => typeof route.params.event_id === 'string' ? route.params.event_id : '')
 const explicitEndpointId = computed(() => typeof route.params.endpoint_id === 'string' ? route.params.endpoint_id : '')
 const eventContext = computed(() => {
@@ -145,6 +192,9 @@ const event = computed(() => eventContext.value?.event ?? null)
 const endpointId = computed(() => endpoint.value?.id ?? explicitEndpointId.value)
 const activeTab = computed(() => route.query.tab === 'headers' ? 'headers' : 'body')
 const copied = ref(false)
+const copiedCurl = ref(false)
+const copiedHeaderCell = ref('')
+const published = ref(false)
 const rawPayload = computed(() => event.value?.payload.trim() ?? '')
 const hasBody = computed(() => rawPayload.value.length > 0)
 const formattedPayload = computed(() => {
@@ -163,16 +213,48 @@ const headerRows = computed(() => {
     .map(([key, value]) => ({ key, value }))
     .sort((left, right) => left.key.localeCompare(right.key))
 })
+const eventUrl = computed(() => {
+  if (!event.value) return ''
+  if (/^https?:\/\//i.test(event.value.path)) return event.value.path
+
+  const baseUrl = endpoint.value?.url.replace(/\/+$/, '') ?? ''
+  const path = event.value.path.startsWith('/') ? event.value.path : `/${event.value.path}`
+
+  return `${baseUrl}${path}`
+})
+const curlCommand = computed(() => {
+  if (!event.value) return ''
+
+  const parts = [
+    `curl -X ${event.value.method} ${shellQuote(eventUrl.value)}`,
+    ...headerRows.value.map(header => `  -H ${shellQuote(`${header.key}: ${header.value}`)}`),
+  ]
+
+  if (hasBody.value) {
+    parts.push(`  --data-raw ${shellQuote(rawPayload.value)}`)
+  }
+
+  return parts.join(' \\\n')
+})
 const copyLabel = computed(() => {
   if (!hasBody.value) return 'No body to copy'
   return copied.value ? 'Copied JSON' : 'Copy JSON'
 })
+const curlLabel = computed(() => copiedCurl.value ? 'Copied cURL command' : 'Copy cURL command')
+const publishLabel = computed(() => published.value ? 'Event published' : 'Publish event')
 const backPath = computed(() => {
   if (isDashboardActivityEventRoute.value) return '/dashboard/activity'
+  if (isEventLogRoute.value) return '/events'
   if (isDashboardRoute.value) return endpointId.value ? `/dashboard/endpoints/${endpointId.value}` : '/dashboard'
   return endpointId.value ? `/endpoints/${endpointId.value}` : '/endpoints'
 })
-const closePath = computed(() => isDashboardRoute.value ? '/dashboard' : '/endpoints')
+const closePath = computed(() => {
+  if (isEventLogRoute.value) return '/events'
+  return isDashboardRoute.value ? '/dashboard' : '/endpoints'
+})
+const backLabel = computed(() => isEventLogRoute.value || isDashboardActivityEventRoute.value ? 'Back to event log' : 'Back to endpoint details')
+
+type HeaderCellKind = 'key' | 'value'
 
 function setTab(tab: 'body' | 'headers') {
   router.replace({
@@ -189,6 +271,47 @@ async function copyBody() {
   window.setTimeout(() => {
     copied.value = false
   }, 1200)
+}
+
+async function copyCurl() {
+  if (!curlCommand.value) return
+
+  await navigator.clipboard.writeText(curlCommand.value)
+  copiedCurl.value = true
+  window.setTimeout(() => {
+    copiedCurl.value = false
+  }, 1200)
+}
+
+function publishEvent() {
+  if (!event.value) return
+
+  published.value = true
+  window.setTimeout(() => {
+    published.value = false
+  }, 1400)
+}
+
+function headerCopyId(headerKey: string, kind: HeaderCellKind) {
+  return `${kind}:${headerKey}`
+}
+
+function headerCopyLabel(headerKey: string, kind: HeaderCellKind) {
+  return copiedHeaderCell.value === headerCopyId(headerKey, kind)
+    ? `Copied ${headerKey} header ${kind}`
+    : `Copy ${headerKey} header ${kind}`
+}
+
+async function copyHeaderCell(text: string, headerKey: string, kind: HeaderCellKind) {
+  await navigator.clipboard.writeText(text)
+  copiedHeaderCell.value = headerCopyId(headerKey, kind)
+  window.setTimeout(() => {
+    if (copiedHeaderCell.value === headerCopyId(headerKey, kind)) copiedHeaderCell.value = ''
+  }, 1200)
+}
+
+function shellQuote(value: string) {
+  return `'${value.replace(/'/g, `'\\''`)}'`
 }
 </script>
 
@@ -226,6 +349,7 @@ async function copyBody() {
   background: white;
   border: 0.5px solid #e2e0d8;
   border-radius: 10px;
+  overflow: hidden;
 }
 
 .event-summary-card { padding: 14px; }
@@ -268,11 +392,65 @@ async function copyBody() {
 .metric-cell strong {
   display: block;
   color: #1a1a2e;
-  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.event-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 0.5px solid #f0eee8;
+}
+
+.event-action-btn {
+  min-width: 0;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0.5px solid #d3d1c7;
+  background: white;
+  border-radius: 7px;
+  padding: 0 10px;
+  color: #5f5e5a;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
   white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+.event-action-btn:hover,
+.event-action-btn:focus-visible,
+.event-action-btn.copied {
+  border-color: rgba(83, 74, 183, 0.22);
+  background: #f5f4f0;
+  color: #534ab7;
+}
+.event-action-btn.primary {
+  border-color: #534ab7;
+  background: #534ab7;
+  color: white;
+  box-shadow: 0 1px 2px rgba(26, 26, 46, 0.08);
+}
+.event-action-btn.primary:hover,
+.event-action-btn.primary:focus-visible,
+.event-action-btn.primary.published {
+  border-color: #3d2fa3;
+  background: #3d2fa3;
+  color: white;
+}
+.event-action-btn:focus-visible {
+  outline: 2px solid rgba(83, 74, 183, 0.18);
+  outline-offset: 2px;
 }
 
 .detail-panel {
@@ -477,5 +655,36 @@ async function copyBody() {
 }
 .headers-table tbody tr:last-child td {
   border-bottom: 0;
+}
+
+.header-copy-cell {
+  display: inline;
+  max-width: 100%;
+  margin: -3px -5px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: copy;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  transition: background 0.1s, color 0.1s, box-shadow 0.1s;
+}
+.header-copy-cell:hover,
+.header-copy-cell:focus-visible {
+  background: #f5f4f0;
+  color: #534ab7;
+}
+.header-copy-cell:focus-visible {
+  outline: 2px solid rgba(83, 74, 183, 0.16);
+  outline-offset: 1px;
+}
+.header-copy-cell.copied {
+  background: #ede9ff;
+  color: #534ab7;
+  box-shadow: inset 0 0 0 0.5px rgba(83, 74, 183, 0.16);
 }
 </style>

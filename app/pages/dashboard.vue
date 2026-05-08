@@ -126,7 +126,6 @@ import {
   PhSidebarSimple,
   PhTerminalWindow,
 } from '@phosphor-icons/vue'
-import type {Event} from "~/domains/event/event.type";
 
 definePageMeta({ layout: 'default' })
 
@@ -148,7 +147,7 @@ const deviceIcons = {
   terminal: PhTerminalWindow,
 } as const
 
-const { endpoints, getEvents } = useEndpoints()
+const { endpoints, getEventLog } = useEndpoints()
 
 const devices = ref<Device[]>([
   { id: 'ios', name: 'iOS App',      platform: 'iPhone 15 · iOS 17.4',  icon: 'phone-ios',     conn: 'connected'    },
@@ -160,17 +159,7 @@ const devices = ref<Device[]>([
 
 const displayedEndpoints = computed(() => endpoints.value.slice(0, 5))
 const displayedDevices = computed(() => devices.value.slice(0, 5))
-const recentEvents = computed<Event[]>(() => endpoints.value
-  .flatMap(endpoint => getEvents(endpoint.id).map(event => ({
-    id: event.id,
-    endpointId: endpoint.id,
-    method: event.method,
-    path: event.path,
-    endpoint: endpoint.name,
-    time: event.time,
-    size: event.size,
-  })))
-  .slice(0, 10))
+const recentEvents = computed(() => getEventLog(10))
 const selectedEndpointId = computed(() => (
   route.path.startsWith('/dashboard/endpoints/') && typeof route.params.endpoint_id === 'string'
     ? route.params.endpoint_id
