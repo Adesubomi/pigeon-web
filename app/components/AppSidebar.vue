@@ -32,14 +32,14 @@
 
       <p class="nav-label mt-4">Account</p>
 
-      <a href="#" class="nav-item">
+      <NuxtLink to="/settings" class="nav-item" active-class="active">
         <PhGearSix class="size-4 shrink-0" />
         Settings
-      </a>
+      </NuxtLink>
     </nav>
 
     <!-- Footer -->
-    <div class="px-4 py-4 border-t border-sand-200 flex items-center gap-2.5 flex-shrink-0">
+    <NuxtLink to="/profile" class="footer-profile" active-class="active">
       <div class="w-7 h-7 rounded-full bg-brand-200 flex items-center justify-center text-[11px] font-medium text-brand-500 flex-shrink-0">
         AO
       </div>
@@ -47,7 +47,7 @@
         <p class="text-xs font-medium text-navy truncate">Ade Okonkwo</p>
         <p class="text-[11px] text-sand-500">Pro plan</p>
       </div>
-    </div>
+    </NuxtLink>
 
   </aside>
 </template>
@@ -98,5 +98,27 @@ import {
 
 .nav-item.active svg path {
   stroke: #534ab7;
+}
+
+.footer-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 8px;
+  border-radius: 10px;
+  border: 0.5px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  text-decoration: none;
+}
+
+.footer-profile:hover {
+  background: #f5f4f0;
+}
+
+.footer-profile.active {
+  background: #ede9ff;
+  border-color: rgba(83, 74, 183, 0.15);
 }
 </style>
