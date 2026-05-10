@@ -10,28 +10,28 @@
       <!-- Scrollable content -->
       <div class="flex-1 overflow-y-auto px-5 sm:px-7 pt-4 pb-7">
         <!-- Tab navigation -->
-        <div class="flex items-center gap-1.5 mb-6">
-          <button
+        <Tabs :model-value="activeTab" class="mb-6 items-start" @update:model-value="setActiveTab">
+          <TabsList>
+            <TabsTrigger
             v-for="tab in tabs"
             :key="tab.id"
-            class="tab-btn"
-            :class="{ active: activeTab === tab.id }"
-            @click="activeTab = tab.id"
+            :value="tab.id"
           >
             {{ tab.label }}
-          </button>
-        </div>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <!-- Usage Tab -->
         <div v-if="activeTab === 'usage'" class="max-w-3xl space-y-4">
           <!-- Current Plan -->
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h2 class="text-[13px] font-semibold text-navy">Current Plan</h2>
                 <p class="text-xs text-sand-500 mt-0.5">You are on the Pro plan</p>
               </div>
-              <span class="px-3 py-1 bg-brand-100 text-brand-600 text-xs font-medium rounded-full">Pro</span>
+              <Badge class="rounded-full bg-brand-100 px-3 py-1 text-xs text-brand-600">Pro</Badge>
             </div>
 
             <div class="grid grid-cols-3 gap-4 py-4 border-t border-b border-sand-100">
@@ -62,14 +62,14 @@
             </div>
 
             <div class="pt-4">
-              <button class="px-4 py-2 bg-navy text-white text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+              <Button>
                 Upgrade Plan
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
 
           <!-- API Usage -->
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <h2 class="text-[13px] font-semibold text-navy mb-4">API Usage (Last 30 Days)</h2>
             <div class="space-y-3">
               <div class="flex items-center justify-between py-2">
@@ -94,16 +94,16 @@
                 <span class="text-xs font-mono text-sand-600">1,203 requests</span>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         <!-- Billing Tab -->
         <div v-if="activeTab === 'billing'" class="max-w-3xl space-y-4">
           <!-- Payment Method -->
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-[13px] font-semibold text-navy">Payment Method</h2>
-              <button class="text-xs text-brand-500 hover:underline">Update</button>
+              <Button variant="link" size="sm" class="h-auto px-0 py-0 text-xs text-brand-500">Update</Button>
             </div>
             
             <div class="flex items-center gap-3 p-3 bg-sand-50 rounded-lg">
@@ -114,12 +114,12 @@
                 <p class="text-[13px] text-navy">•••• 4242</p>
                 <p class="text-xs text-sand-500">Expires 12/25</p>
               </div>
-              <span class="px-2 py-0.5 bg-success-50 text-success-600 text-[10px] font-medium rounded">Default</span>
+              <Badge variant="success" class="bg-success-50 text-[10px]">Default</Badge>
             </div>
-          </div>
+          </Card>
 
           <!-- Billing History -->
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <h2 class="text-[13px] font-semibold text-navy mb-4">Billing History</h2>
             
             <div class="space-y-2">
@@ -136,35 +136,35 @@
                 </div>
                 <div class="flex items-center gap-3">
                   <span class="text-sm font-medium text-navy font-mono">{{ invoice.amount }}</span>
-                  <button class="p-1.5 text-sand-400 hover:text-navy transition-colors">
+                  <Button variant="ghost" size="icon" class="size-8 text-sand-400 hover:text-foreground">
                     <PhDownload class="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
 
           <!-- Cancel Subscription -->
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <h2 class="text-[13px] font-semibold text-navy mb-2">Cancel Subscription</h2>
             <p class="text-xs text-sand-500 mb-4">If you cancel, you will lose access to Pro features at the end of your billing period.</p>
-            <button class="px-4 py-2 border border-sand-200 text-sand-600 text-xs font-medium rounded-lg hover:bg-sand-50 transition-colors">
+            <Button variant="outline" class="text-sand-600">
               Cancel Subscription
-            </button>
-          </div>
+            </Button>
+          </Card>
         </div>
 
         <!-- Team Tab (Placeholder) -->
         <div v-if="activeTab === 'team'" class="max-w-3xl">
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="p-6">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h2 class="text-[13px] font-semibold text-navy">Team Members</h2>
                 <p class="text-xs text-sand-500 mt-0.5">Manage access to your workspace</p>
               </div>
-              <button class="px-3 py-1.5 bg-navy text-white text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+              <Button size="sm">
                 Invite Member
-              </button>
+              </Button>
             </div>
 
             <div class="space-y-2">
@@ -185,7 +185,7 @@
             <div class="mt-4 p-4 bg-sand-50 rounded-lg border border-dashed border-sand-200">
               <p class="text-xs text-sand-500 text-center">Team collaboration is coming soon. For now, this is a single-user workspace.</p>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
@@ -205,6 +205,10 @@ const tabs = [
 
 const activeTab = ref<typeof tabs[number]['id']>('usage')
 
+function setActiveTab(value: string) {
+  if (tabs.some(tab => tab.id === value)) activeTab.value = value as typeof tabs[number]['id']
+}
+
 const invoices = [
   { id: 1, month: 'May', day: '01', description: 'Pro Plan', status: 'Paid', amount: '$29.00' },
   { id: 2, month: 'Apr', day: '01', description: 'Pro Plan', status: 'Paid', amount: '$29.00' },
@@ -212,23 +216,3 @@ const invoices = [
   { id: 4, month: 'Feb', day: '01', description: 'Pro Plan (Prorated)', status: 'Paid', amount: '$14.50' },
 ]
 </script>
-
-<style scoped>
-.tab-btn {
-  border: 0;
-  background: transparent;
-  border-radius: 7px;
-  padding: 6px 14px;
-  color: #5f5e5a;
-  cursor: pointer;
-  font-size: 12px;
-  font-family: inherit;
-  font-weight: 500;
-  transition: background 0.1s, color 0.1s;
-}
-.tab-btn:hover { background: #f5f4f0; }
-.tab-btn.active {
-  background: #1a1a2e;
-  color: white;
-}
-</style>

@@ -1,127 +1,127 @@
+<link rel="stylesheet" href="../assets/css/main.css">
 <template>
   <section class="flex h-full flex-col overflow-hidden">
     <header class="px-5 py-5 border-b border-sand-200 flex-shrink-0">
       <div class="flex items-center justify-between gap-3">
-        <button class="panel-icon-btn" :aria-label="backLabel" @click="navigateTo(backPath)">
+        <Button variant="outline" size="icon" class="size-8 shrink-0 text-muted-foreground hover:text-foreground" :aria-label="backLabel" @click="navigateTo(backPath)">
           <PhArrowLeft class="size-3.5" />
-        </button>
+        </Button>
 
         <div class="min-w-0 flex-1 text-center">
           <p class="text-[13px] font-semibold text-navy truncate">{{ event?.path ?? 'Event details' }}</p>
           <p class="text-[10px] text-sand-500 font-mono truncate">{{ endpoint?.name }}</p>
         </div>
 
-        <button class="panel-icon-btn" aria-label="Close event details" @click="navigateTo(closePath)">
+        <Button variant="outline" size="icon" class="size-8 shrink-0 text-muted-foreground hover:text-foreground" aria-label="Close event details" @click="navigateTo(closePath)">
           <PhX class="size-3.5" />
-        </button>
+        </Button>
       </div>
     </header>
 
     <div v-if="event" class="event-detail-scroll">
       <div class="event-detail-content">
-        <section class="event-summary-card">
-          <div class="event-request-line">
-            <span class="method-badge" :class="event.method.toLowerCase()">{{ event.method }}</span>
-            <p class="event-path">{{ event.path }}</p>
+        <Card class="p-3.5">
+          <div class="flex min-w-0 items-center gap-2.5 border-b border-secondary pb-3">
+            <Badge
+              variant="outline"
+              :class="cn('min-w-8 justify-center border-transparent px-1 py-0 font-mono text-[9px] font-semibold', methodClasses[event.method])"
+            >
+              {{ event.method }}
+            </Badge>
+            <p class="m-0 min-w-0 font-mono text-[13px] leading-relaxed text-foreground [overflow-wrap:anywhere]">{{ event.path }}</p>
           </div>
 
-          <div class="detail-metrics">
-            <div class="metric-cell">
-              <span>Received</span>
-              <strong>{{ event.receivedAt }}</strong>
+          <div class="grid grid-cols-3 gap-2 pt-3">
+            <div class="min-w-0">
+              <span class="mb-1 block text-[10px] text-muted-foreground">Received</span>
+              <strong class="block font-mono text-[11px] font-medium leading-snug text-foreground [overflow-wrap:anywhere]">{{ event.receivedAt }}</strong>
             </div>
-            <div class="metric-cell">
-              <span>Size</span>
-              <strong>{{ event.size }}</strong>
+            <div class="min-w-0">
+              <span class="mb-1 block text-[10px] text-muted-foreground">Size</span>
+              <strong class="block font-mono text-[11px] font-medium leading-snug text-foreground [overflow-wrap:anywhere]">{{ event.size }}</strong>
             </div>
-            <div class="metric-cell">
-              <span>Source</span>
-              <strong>{{ event.source }}</strong>
+            <div class="min-w-0">
+              <span class="mb-1 block text-[10px] text-muted-foreground">Source</span>
+              <strong class="block font-mono text-[11px] font-medium leading-snug text-foreground [overflow-wrap:anywhere]">{{ event.source }}</strong>
             </div>
           </div>
 
-          <div class="event-actions">
-            <button
-              class="event-action-btn"
-              :class="{ copied: copiedCurl }"
+          <div class="mt-3 flex items-center gap-2 border-t border-secondary pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8"
+              :class="{ 'border-brand-500/25 bg-accent text-accent-foreground': copiedCurl }"
               :aria-label="curlLabel"
               :title="curlLabel"
               @click="copyCurl"
             >
               <PhCode class="size-3.5 shrink-0" />
               {{ copiedCurl ? 'Copied' : 'Copy cURL' }}
-            </button>
+            </Button>
 
-            <button
-              class="event-action-btn primary"
-              :class="{ published }"
+            <Button
+              size="sm"
+              class="h-8 bg-brand-500 text-white hover:bg-brand-600"
+              :class="{ 'bg-brand-600': published }"
               :aria-label="publishLabel"
               :title="publishLabel"
               @click="publishEvent"
             >
               <PhBroadcast class="size-3.5 shrink-0" />
               {{ published ? 'Published' : 'Publish' }}
-            </button>
+            </Button>
           </div>
-        </section>
+        </Card>
 
-        <div class="tab-list">
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'body' }"
-            @click="setTab('body')"
-          >
-            Body
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'headers' }"
-            @click="setTab('headers')"
-          >
-            Headers
-          </button>
-        </div>
+        <Tabs :model-value="activeTab" class="items-start" @update:model-value="value => setTab(value as 'body' | 'headers')">
+          <TabsList>
+            <TabsTrigger value="body">Body</TabsTrigger>
+            <TabsTrigger value="headers">Headers</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        <section v-if="activeTab === 'body'" class="detail-panel body-panel">
+        <Card v-if="activeTab === 'body'" class="overflow-hidden">
           <div class="payload-header">
             <p class="panel-section-title">Body</p>
-            <span class="payload-format">JSON</span>
+            <Badge variant="outline" class="font-mono text-[9px] text-muted-foreground">JSON</Badge>
           </div>
 
           <div class="code-viewer">
-            <button
-              class="copy-code-btn"
+            <Button
+              variant="outline"
+              size="icon"
+              class="absolute right-2.5 top-2.5 z-10 size-7 border-brand-100/20 bg-navy/80 text-brand-100 hover:bg-brand-500 hover:text-white"
               :disabled="!hasBody"
               :aria-label="copyLabel"
               :title="copyLabel"
               @click="copyBody"
             >
               <PhCopy class="size-3.5" />
-            </button>
+            </Button>
             <pre v-if="hasBody" class="payload-block"><code>{{ formattedPayload }}</code></pre>
             <div v-else class="empty-body">
               <p>No body</p>
             </div>
           </div>
-        </section>
+        </Card>
 
-        <section v-else class="detail-panel headers-panel">
+        <Card v-else class="overflow-hidden">
           <div class="payload-header">
             <p class="panel-section-title">Headers</p>
-            <span class="header-count">{{ headerRows.length }}</span>
+            <Badge variant="outline" class="rounded-full font-mono text-[9px] text-muted-foreground">{{ headerRows.length }}</Badge>
           </div>
 
-          <div class="headers-table-wrap">
-            <table class="headers-table">
-              <thead>
-                <tr>
-                  <th>Key</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="header in headerRows" :key="header.key">
-                  <td>
+          <Table class="table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead class="w-[38%]">Key</TableHead>
+                <TableHead>Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="header in headerRows" :key="header.key">
+                <TableCell class="font-mono text-[11px] text-sand-700 [overflow-wrap:anywhere]">
                     <button
                       class="header-copy-cell"
                       :class="{ copied: copiedHeaderCell === headerCopyId(header.key, 'key') }"
@@ -131,8 +131,8 @@
                     >
                       {{ header.key }}
                     </button>
-                  </td>
-                  <td>
+                </TableCell>
+                <TableCell class="font-mono text-[11px] text-foreground [overflow-wrap:anywhere]">
                     <button
                       class="header-copy-cell"
                       :class="{ copied: copiedHeaderCell === headerCopyId(header.key, 'value') }"
@@ -142,20 +142,19 @@
                     >
                       {{ header.value }}
                     </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
       </div>
     </div>
 
     <div v-else class="flex-1 flex flex-col items-center justify-center gap-2 text-sand-500 p-10 text-center">
       <p class="text-xs">Event not found</p>
-      <button class="text-[11px] text-brand-500 bg-transparent border-0 cursor-pointer font-sans hover:underline" @click="navigateTo(backPath)">
+      <Button variant="link" size="sm" class="h-auto px-0 py-0 text-[11px] text-brand-500" @click="navigateTo(backPath)">
         Back to endpoint
-      </button>
+      </Button>
     </div>
   </section>
 </template>
@@ -168,6 +167,15 @@ import {
   PhCopy,
   PhX,
 } from '@phosphor-icons/vue'
+import { cn } from '@/lib/utils'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const route = useRoute()
 const router = useRouter()
@@ -195,6 +203,15 @@ const copied = ref(false)
 const copiedCurl = ref(false)
 const copiedHeaderCell = ref('')
 const published = ref(false)
+const methodClasses = {
+  GET: 'bg-[#163126] text-[#9ae6b4]',
+  POST: 'bg-[#3b3323] text-[#ffe47a]',
+  PUT: 'bg-[#1c2c49] text-[#9fbfff]',
+  PATCH: 'bg-[#2d2244] text-[#d8b4fe]',
+  DELETE: 'bg-[#3a241f] text-[#ffad9f]',
+  HEAD: 'bg-[#163126] text-[#9ae6b4]',
+  OPTIONS: 'bg-[#3c2035] text-[#ff8bd1]',
+} satisfies Record<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS', string>
 const rawPayload = computed(() => event.value?.payload.trim() ?? '')
 const hasBody = computed(() => rawPayload.value.length > 0)
 const formattedPayload = computed(() => {

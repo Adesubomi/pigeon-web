@@ -1,41 +1,53 @@
 <template>
-  <div class="endpoint-item">
-    <div class="status-pill" :class="endpoint.status"></div>
+  <div class="endpoint-item flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors hover:border-sand-400">
+    <div class="size-2 shrink-0 rounded-full" :class="statusClasses[endpoint.status]" />
 
     <div class="flex-1 min-w-0">
       <NuxtLink
         v-if="to"
-        class="ep-name-link"
+        class="inline-flex max-w-full rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
         :to="to"
       >
-        <span class="ep-name" :class="{ muted: endpoint.status === 'inactive' }">{{ endpoint.name }}</span>
+        <span
+          class="truncate text-[13px] font-medium underline-offset-4 hover:underline"
+          :class="endpoint.status === 'inactive' ? 'text-muted-foreground' : 'text-foreground'"
+        >
+          {{ endpoint.name }}
+        </span>
       </NuxtLink>
       <button
         v-else
-        class="ep-name-link ep-name-button"
+        class="inline-flex max-w-full rounded-sm bg-transparent p-0 text-left font-sans outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
         type="button"
         @click="$emit('open', endpoint)"
       >
-        <span class="ep-name" :class="{ muted: endpoint.status === 'inactive' }">{{ endpoint.name }}</span>
+        <span
+          class="truncate text-[13px] font-medium underline-offset-4 hover:underline"
+          :class="endpoint.status === 'inactive' ? 'text-muted-foreground' : 'text-foreground'"
+        >
+          {{ endpoint.name }}
+        </span>
       </button>
-      <div class="ep-url-row">
-        <span class="ep-url">{{ endpoint.url }}</span>
-        <button
+      <div class="flex min-w-0 items-center gap-1.5">
+        <span class="truncate font-mono text-[11px] text-muted-foreground">{{ endpoint.url }}</span>
+        <Button
           v-if="showCopyControl"
-          class="copy-url-btn"
+          variant="ghost"
+          size="icon"
+          class="size-5 shrink-0 text-muted-foreground hover:text-accent-foreground"
           title="Copy URL"
           @click.stop="$emit('copy', endpoint)"
         >
           <PhCopy class="size-3" />
-        </button>
+        </Button>
       </div>
     </div>
 
     <div class="shrink-0 flex items-center gap-2.5">
       <span
         v-if="showEventCount"
-        class="event-count"
-        :class="endpoint.status === 'inactive' ? 'muted' : ''"
+        class="font-mono text-xs"
+        :class="endpoint.status === 'inactive' ? 'text-muted-foreground' : 'text-foreground'"
       >
         {{ formattedEventCount }}
       </span>
@@ -46,20 +58,22 @@
         :error="endpoint.status === 'error'"
       />
 
-      <div class="ep-actions">
-        <button
+      <div class="flex gap-1">
+        <Button
           v-if="showPlaybackControl"
-          class="icon-btn"
+          variant="outline"
+          size="icon"
+          class="size-8 text-muted-foreground hover:text-foreground"
           :title="endpoint.status === 'inactive' ? 'Resume' : 'Pause'"
           @click.stop="$emit('togglePlayback', endpoint)"
         >
           <PhPlay v-if="endpoint.status === 'inactive'" class="size-3" weight="fill" />
           <PhPause v-else class="size-3" weight="fill" />
-        </button>
+        </Button>
 
         <a
           v-if="showOpenControl"
-          class="icon-btn"
+          class="inline-flex size-8 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           :href="previewUrl"
           target="_blank"
           rel="noopener noreferrer"
@@ -69,14 +83,16 @@
           <PhArrowSquareOut class="size-3" />
         </a>
 
-        <button
+        <Button
           v-if="showDeleteControl"
-          class="icon-btn"
+          variant="outline"
+          size="icon"
+          class="size-8 text-muted-foreground hover:text-danger-500"
           title="Delete"
           @click.stop="$emit('delete', endpoint)"
         >
           <PhTrash class="size-3" />
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -135,116 +151,10 @@ const deviceCount = computed(() => props.endpoint.devices ?? 0)
 const eventCount = computed(() => props.endpoint.eventsToday ?? props.endpoint.events ?? null)
 const formattedEventCount = computed(() => eventCount.value == null ? '-' : eventCount.value.toLocaleString())
 const previewUrl = computed(() => props.previewUrl ?? props.endpoint.url)
+
+const statusClasses = {
+  active: 'bg-success-600 shadow-[0_0_0_3px_rgba(29,158,117,0.15)]',
+  inactive: 'bg-sand-400',
+  error: 'bg-danger-500 shadow-[0_0_0_3px_rgba(226,75,74,0.12)]',
+} satisfies Record<EndpointListEndpoint['status'], string>
 </script>
-
-<style scoped>
-.endpoint-item {
-  background: white;
-  border: 0.5px solid #e2e0d8;
-  border-radius: 10px;
-  padding: 13px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: border-color 0.15s;
-}
-.endpoint-item:hover { border-color: #b4b2a9; }
-
-.status-pill {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.status-pill.active   { background: #1d9e75; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
-.status-pill.inactive { background: #b4b2a9; }
-.status-pill.error    { background: #e24b4a; box-shadow: 0 0 0 3px rgba(226,75,74,0.12); }
-
-.ep-name-link {
-  display: inline-flex;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-  text-decoration: none;
-  font: inherit;
-}
-.ep-name-link:hover .ep-name,
-.ep-name-link:focus-visible .ep-name {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.ep-name-link:focus-visible {
-  outline: 2px solid rgba(83, 74, 183, 0.22);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-.ep-name-button {
-  font-family: inherit;
-}
-.ep-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1a1a2e;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ep-name.muted { color: #9e9c96; }
-
-.ep-url-row {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-}
-
-.ep-url {
-  font-size: 11px;
-  color: #9e9c96;
-  font-family: 'IBM Plex Mono', monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.copy-url-btn {
-  width: 18px; height: 18px;
-  border: 0;
-  background: transparent;
-  border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: #9e9c96;
-  flex-shrink: 0;
-  padding: 0;
-  transition: background 0.1s, color 0.1s;
-}
-.copy-url-btn:hover { background: #f5f4f0; color: #534ab7; }
-
-.event-count {
-  font-size: 12px;
-  color: #1a1a2e;
-  font-family: 'IBM Plex Mono', monospace;
-}
-.event-count.muted { color: #9e9c96; }
-
-.ep-actions {
-  display: flex;
-  gap: 3px;
-}
-
-.icon-btn {
-  width: 34px; height: 34px;
-  border: 0.5px solid #d3d1c7;
-  background: white;
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: #888780;
-  text-decoration: none;
-  transition: background 0.1s, color 0.1s;
-}
-.icon-btn:hover { background: #f5f4f0; color: #1a1a2e; }
-</style>

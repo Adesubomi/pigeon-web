@@ -39,21 +39,15 @@
       </Transition>
     </aside>
 
-    <Teleport to="body">
-      <Transition name="drawer">
-        <div v-if="hasPanelRoute" class="lg:hidden fixed inset-0 z-50">
-          <button
-            class="absolute inset-0 bg-black/45 border-0 cursor-default"
-            aria-label="Close event details"
-            @click="navigateTo('/events')"
-          />
-
-          <aside class="drawer-panel absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col overflow-hidden">
-            <NuxtPage />
-          </aside>
-        </div>
-      </Transition>
-    </Teleport>
+    <Sheet :open="hasPanelRoute && !isDesktopPanel" @update:open="open => { if (!open) navigateTo('/events') }">
+      <SheetContent class="flex flex-col overflow-hidden p-0">
+        <SheetHeader class="sr-only">
+          <SheetTitle>Event details</SheetTitle>
+          <SheetDescription>Event route details rendered in a mobile drawer.</SheetDescription>
+        </SheetHeader>
+        <NuxtPage />
+      </SheetContent>
+    </Sheet>
   </div>
 </template>
 
@@ -61,6 +55,7 @@
 import {
   PhCalendarBlank,
 } from '@phosphor-icons/vue'
+import { useMediaQuery } from '@vueuse/core'
 
 definePageMeta({ layout: 'default' })
 
@@ -70,6 +65,7 @@ const { getEventLog } = useEndpoints()
 const events = computed(() => getEventLog())
 const selectedEventId = computed(() => typeof route.params.event_id === 'string' ? route.params.event_id : '')
 const hasPanelRoute = computed(() => route.path.startsWith('/events/') && Boolean(selectedEventId.value))
+const isDesktopPanel = useMediaQuery('(min-width: 1024px)')
 </script>
 
 <style scoped>
@@ -95,22 +91,5 @@ const hasPanelRoute = computed(() => route.path.startsWith('/events/') && Boolea
 }
 .panel-shell {
   min-width: 0;
-}
-
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: opacity 0.16s ease;
-}
-.drawer-enter-from,
-.drawer-leave-to {
-  opacity: 0;
-}
-.drawer-enter-active .drawer-panel,
-.drawer-leave-active .drawer-panel {
-  transition: transform 0.18s ease;
-}
-.drawer-enter-from .drawer-panel,
-.drawer-leave-to .drawer-panel {
-  transform: translateX(100%);
 }
 </style>

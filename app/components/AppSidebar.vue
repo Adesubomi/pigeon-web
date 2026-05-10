@@ -1,12 +1,12 @@
 <template>
-  <aside class="w-[240px] min-w-[240px] bg-white border-r border-sand-200 flex flex-col">
+  <aside class="flex w-[240px] min-w-[240px] flex-col border-r border-border bg-card">
 
     <!-- Logo -->
-    <div class="px-5 py-5 pb-4 border-b border-sand-200 flex items-center gap-2.5 flex-shrink-0">
-      <div class="w-7 h-7 bg-navy rounded-[7px] flex items-center justify-center flex-shrink-0">
+    <div class="flex shrink-0 items-center gap-2.5 border-b border-border px-5 py-5 pb-4">
+      <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary">
         <PhPaperPlaneTilt class="size-4 text-brand-200" weight="fill" />
       </div>
-      <span class="text-[15px] font-semibold tracking-[-0.3px] text-navy">Pigeon</span>
+      <span class="text-[15px] font-semibold text-foreground">Pigeon</span>
     </div>
 
     <!-- Nav -->
@@ -17,12 +17,12 @@
         Dashboard
       </NuxtLink>
 
-      <p class="nav-label mt-3">Workspace</p>
+      <p class="nav-label mt-3 px-2.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Workspace</p>
 
       <NuxtLink to="/endpoints" class="nav-item" active-class="active">
         <PhStack class="size-4 shrink-0" />
         Endpoints
-        <span class="ml-auto bg-brand-700 text-brand-300 text-[10px] font-medium px-1.5 py-px rounded-full font-mono">5</span>
+        <Badge class="ml-auto rounded-full bg-brand-700 px-1.5 py-px font-mono text-[10px] text-brand-300">5</Badge>
       </NuxtLink>
 
       <NuxtLink to="/events" class="nav-item" active-class="active">
@@ -30,7 +30,7 @@
         Event log
       </NuxtLink>
 
-      <p class="nav-label mt-4">Account</p>
+      <p class="nav-label mt-4 px-2.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">Account</p>
 
       <NuxtLink to="/settings" class="nav-item" active-class="active">
         <PhGearSix class="size-4 shrink-0" />
@@ -40,12 +40,12 @@
 
     <!-- Footer -->
     <NuxtLink to="/profile" class="footer-profile" active-class="active">
-      <div class="w-7 h-7 rounded-full bg-brand-200 flex items-center justify-center text-[11px] font-medium text-brand-500 flex-shrink-0">
+      <div class="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-medium text-accent-foreground">
         AO
       </div>
       <div class="min-w-0">
-        <p class="text-xs font-medium text-navy truncate">Ade Okonkwo</p>
-        <p class="text-[11px] text-sand-500">Pro plan</p>
+        <p class="truncate text-xs font-medium text-foreground">Ade Okonkwo</p>
+        <p class="text-[11px] text-muted-foreground">Pro plan</p>
       </div>
     </NuxtLink>
 
@@ -63,16 +63,6 @@ import {
 </script>
 
 <style scoped>
-.nav-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: #9e9c96;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0 10px;
-  margin-bottom: 4px;
-}
-
 .nav-item {
   display: flex;
   align-items: center;
@@ -87,13 +77,13 @@ import {
 }
 
 .nav-item:hover {
-  background: #f5f4f0;
+  background: var(--muted);
 }
 
 .nav-item.active {
-  background: #ede9ff;
-  color: #534ab7;
-  box-shadow: inset 3px 0 0 #534ab7;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: inset 3px 0 0 var(--accent-foreground);
 }
 
 .nav-item.active svg path {
@@ -114,11 +104,11 @@ import {
 }
 
 .footer-profile:hover {
-  background: #f5f4f0;
+  background: var(--muted);
 }
 
 .footer-profile.active {
-  background: #ede9ff;
+  background: var(--accent);
   border-color: rgba(83, 74, 183, 0.15);
 }
 </style>

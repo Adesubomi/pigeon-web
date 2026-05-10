@@ -9,22 +9,8 @@
 
       <!-- Scrollable content -->
       <div class="flex-1 overflow-y-auto px-5 sm:px-7 pt-4 pb-7">
-        <!-- Tab navigation -->
-        <div class="flex items-center gap-1.5 mb-6">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            class="tab-btn"
-            :class="{ active: activeTab === tab.id }"
-            @click="activeTab = tab.id"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-
-        <!-- Profile Tab -->
-        <div v-if="activeTab === 'profile'" class="max-w-2xl">
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+        <div class="max-w-2xl">
+          <Card class="p-6">
             <h2 class="text-[13px] font-semibold text-navy mb-4">Account Information</h2>
             
             <div class="space-y-4">
@@ -46,10 +32,10 @@
                 
                 <div>
                   <label class="block text-[11px] font-medium text-sand-500 uppercase tracking-wide mb-1.5">Full Name</label>
-                  <input 
+                  <Input
                     type="text" 
                     value="Ade Okonkwo"
-                    class="w-full px-3 py-2 bg-sand-50 border border-sand-200 rounded-lg text-[13px] text-navy focus:outline-none focus:border-brand-500"
+                    class="text-[13px]"
                   />
                 </div>
 
@@ -60,28 +46,17 @@
               </div>
 
               <div class="pt-4 border-t border-sand-100 flex gap-3">
-                <button class="px-4 py-2 bg-navy text-white text-xs font-medium rounded-lg hover:opacity-90 transition-opacity">
+                <Button>
                   Save Changes
-                </button>
-                <button class="px-4 py-2 border border-sand-200 text-sand-600 text-xs font-medium rounded-lg hover:bg-sand-50 transition-colors">
+                </Button>
+                <Button variant="outline" class="text-sand-600">
                   Change Password
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
 
-          <div class="bg-white border border-sand-200 rounded-xl p-6 mt-4">
-            <h2 class="text-[13px] font-semibold text-navy mb-2">Danger Zone</h2>
-            <p class="text-xs text-sand-500 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
-            <button class="px-4 py-2 border border-danger-500 text-danger-500 text-xs font-medium rounded-lg hover:bg-danger-50 transition-colors">
-              Delete Account
-            </button>
-          </div>
-        </div>
-
-        <!-- Integrations Tab -->
-        <div v-if="activeTab === 'integrations'" class="max-w-2xl">
-          <div class="bg-white border border-sand-200 rounded-xl p-6">
+          <Card class="mt-4 p-6">
             <h2 class="text-[13px] font-semibold text-navy mb-4">Connected Accounts</h2>
             <p class="text-xs text-sand-500 mb-6">Connect your accounts to enable sign-in and integrations.</p>
             
@@ -102,9 +77,9 @@
                     <p class="text-xs text-sand-500">Connected as ade@example.com</p>
                   </div>
                 </div>
-                <button class="px-3 py-1.5 text-xs font-medium text-danger-500 border border-danger-500 rounded-lg hover:bg-danger-50 transition-colors">
+                <Button variant="outline" size="sm" class="border-danger-500 text-danger-500 hover:bg-danger-50 hover:text-danger-500">
                   Disconnect
-                </button>
+                </Button>
               </div>
 
               <!-- GitHub -->
@@ -120,12 +95,20 @@
                     <p class="text-xs text-sand-500">Not connected</p>
                   </div>
                 </div>
-                <button class="px-3 py-1.5 text-xs font-medium text-navy bg-sand-50 border border-sand-200 rounded-lg hover:bg-sand-100 transition-colors">
+                <Button variant="outline" size="sm">
                   Connect
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
+
+          <Card class="mt-4 p-6">
+            <h2 class="text-[13px] font-semibold text-navy mb-2">Danger Zone</h2>
+            <p class="text-xs text-sand-500 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
+            <Button variant="outline" class="border-danger-500 text-danger-500 hover:bg-danger-50 hover:text-danger-500">
+              Delete Account
+            </Button>
+          </Card>
         </div>
       </div>
     </div>
@@ -134,31 +117,4 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
-
-const tabs = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'integrations', label: 'Integrations' },
-] as const
-
-const activeTab = ref<typeof tabs[number]['id']>('profile')
 </script>
-
-<style scoped>
-.tab-btn {
-  border: 0;
-  background: transparent;
-  border-radius: 7px;
-  padding: 6px 14px;
-  color: #5f5e5a;
-  cursor: pointer;
-  font-size: 12px;
-  font-family: inherit;
-  font-weight: 500;
-  transition: background 0.1s, color 0.1s;
-}
-.tab-btn:hover { background: #f5f4f0; }
-.tab-btn.active {
-  background: #1a1a2e;
-  color: white;
-}
-</style>

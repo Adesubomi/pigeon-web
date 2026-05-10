@@ -15,14 +15,16 @@
         </div>
 
         <!-- Activity panel toggle -->
-        <button
-          class="activity-toggle-btn 2xl:hidden"
-          :class="{ active: isDashboardPanelOpen }"
+        <Button
+          variant="outline"
+          size="icon"
+          class="size-9 shrink-0 text-muted-foreground 2xl:hidden"
+          :class="{ 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground': isDashboardPanelOpen }"
           aria-label="Toggle activity panel"
           @click="toggleActivityPanel"
         >
           <PhSidebarSimple class="sidebar-toggle-icon size-3.5 shrink-0" />
-        </button>
+        </Button>
       </header>
 
       <!-- Scrollable content -->
@@ -97,22 +99,16 @@
     </aside>
 
     <!-- ── Activity drawer below largest screens ── -->
-    <Teleport to="body">
-      <Transition name="drawer">
-        <div v-if="isDashboardPanelOpen" class="2xl:hidden fixed inset-0 z-50">
-          <button
-            class="absolute inset-0 bg-black/45 border-0 cursor-default"
-            aria-label="Close dashboard panel"
-            @click="closeDashboardPanel"
-          />
-
-          <aside class="drawer-panel absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col overflow-hidden">
-            <NuxtPage v-if="hasDetailRoute" />
-            <DashboardActivityPanel v-else :events="recentEvents" show-close @close="closeDashboardPanel" />
-          </aside>
-        </div>
-      </Transition>
-    </Teleport>
+    <Sheet :open="isDashboardPanelOpen && !isDesktopPanel" @update:open="open => { if (!open) closeDashboardPanel() }">
+      <SheetContent class="flex flex-col overflow-hidden p-0">
+        <SheetHeader class="sr-only">
+          <SheetTitle>Dashboard activity</SheetTitle>
+          <SheetDescription>Dashboard activity and detail routes rendered in a mobile drawer.</SheetDescription>
+        </SheetHeader>
+        <NuxtPage v-if="hasDetailRoute" />
+        <DashboardActivityPanel v-else :events="recentEvents" show-close @close="closeDashboardPanel" />
+      </SheetContent>
+    </Sheet>
 
   </div>
 </template>
@@ -126,6 +122,7 @@ import {
   PhSidebarSimple,
   PhTerminalWindow,
 } from '@phosphor-icons/vue'
+import { useMediaQuery } from '@vueuse/core'
 
 definePageMeta({ layout: 'default' })
 
@@ -169,6 +166,7 @@ const isActivityRoute = computed(() => route.path.startsWith('/dashboard/activit
 const isEndpointRoute = computed(() => route.path.startsWith('/dashboard/endpoints/'))
 const hasDetailRoute = computed(() => route.path.startsWith('/dashboard/activity/events/') || isEndpointRoute.value)
 const isDashboardPanelOpen = computed(() => isActivityRoute.value || isEndpointRoute.value)
+const isDesktopPanel = useMediaQuery('(min-width: 1536px)')
 
 function toggleActivityPanel() {
   navigateTo(isDashboardPanelOpen.value ? '/dashboard' : '/dashboard/activity')
@@ -207,37 +205,8 @@ function closeDashboardPanel() {
   box-shadow: 0 0 0 1px rgba(83, 74, 183, 0.14);
 }
 
-.activity-toggle-btn {
-  width: 36px;
-  height: 36px;
-  border: 0.5px solid #d3d1c7;
-  background: white;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #888780;
-  flex-shrink: 0;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-}
-.activity-toggle-btn:hover {
-  background: #f5f4f0;
-  color: #1a1a2e;
-}
-.activity-toggle-btn.active {
-  background: #1a1a2e;
-  border-color: #1a1a2e;
-  color: #e8e4ff;
-}
 .sidebar-toggle-icon {
   transform: scaleX(-1);
-}
-
-@media (min-width: 1536px) {
-  .activity-toggle-btn {
-    display: none;
-  }
 }
 
 /* ── Device cards ── */
@@ -271,20 +240,4 @@ function closeDashboardPanel() {
 .conn-square.degraded     { background: #e08c2e; }
 .conn-square.disconnected { background: #e24b4a; }
 
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: opacity 0.16s ease;
-}
-.drawer-enter-from,
-.drawer-leave-to {
-  opacity: 0;
-}
-.drawer-enter-active .drawer-panel,
-.drawer-leave-active .drawer-panel {
-  transition: transform 0.18s ease;
-}
-.drawer-enter-from .drawer-panel,
-.drawer-leave-to .drawer-panel {
-  transform: translateX(100%);
-}
 </style>

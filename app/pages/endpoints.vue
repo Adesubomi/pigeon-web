@@ -9,16 +9,16 @@
         <h1 class="text-[15px] font-semibold text-navy tracking-tight flex-1">Endpoints</h1>
 
         <!-- Search -->
-        <div class="hidden sm:flex items-center gap-1.5 bg-sand-50 border border-sand-200 rounded-lg px-3 py-2 w-48">
-          <PhMagnifyingGlass class="size-3.5 shrink-0 text-sand-400" />
-          <span class="text-xs text-sand-500">Search endpoints...</span>
+        <div class="relative hidden w-48 sm:block">
+          <PhMagnifyingGlass class="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input class="h-9 bg-background pl-8 text-xs" placeholder="Search endpoints..." />
         </div>
 
         <!-- New endpoint -->
-        <button class="flex items-center gap-1.5 bg-navy text-brand-100 text-xs font-medium px-4 py-2.5 rounded-lg cursor-pointer border-none font-sans hover:opacity-85 transition-opacity">
+        <Button class="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
           <PhPlus class="size-3.5 shrink-0" />
           New endpoint
-        </button>
+        </Button>
       </header>
 
       <!-- Scrollable content -->
@@ -28,13 +28,14 @@
         <div class="flex items-center justify-between gap-3">
           <span class="text-[11px] font-medium text-sand-500 uppercase tracking-[0.06em]">All endpoints</span>
           <div class="flex gap-1.5">
-            <button
+            <Button
               v-for="f in filters"
               :key="f"
-              class="filter-chip"
-              :class="{ active: activeFilter === f }"
+              class="h-7 rounded-full px-3 text-[11px]"
+              :class="activeFilter === f ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''"
+              :variant="activeFilter === f ? 'default' : 'outline'"
               @click="activeFilter = f"
-            >{{ f }}</button>
+            >{{ f }}</Button>
           </div>
         </div>
 
@@ -68,21 +69,15 @@
     </aside>
 
     <!-- Tablet/mobile drawer detail panel -->
-    <Teleport to="body">
-      <Transition name="drawer">
-        <div v-if="hasPanelRoute" class="lg:hidden fixed inset-0 z-50">
-          <button
-            class="absolute inset-0 bg-black/45 border-0 cursor-default"
-            aria-label="Close endpoint panel"
-            @click="navigateTo('/endpoints')"
-          />
-
-          <aside class="drawer-panel absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col overflow-hidden">
-            <NuxtPage />
-          </aside>
-        </div>
-      </Transition>
-    </Teleport>
+    <Sheet :open="hasPanelRoute && !isDesktopPanel" @update:open="open => { if (!open) navigateTo('/endpoints') }">
+      <SheetContent class="flex flex-col overflow-hidden p-0">
+        <SheetHeader class="sr-only">
+          <SheetTitle>Endpoint details</SheetTitle>
+          <SheetDescription>Endpoint route details rendered in a mobile drawer.</SheetDescription>
+        </SheetHeader>
+        <NuxtPage />
+      </SheetContent>
+    </Sheet>
 
   </div>
 </template>
@@ -92,6 +87,7 @@ import {
   PhMagnifyingGlass,
   PhPlus,
 } from '@phosphor-icons/vue'
+import { useMediaQuery } from '@vueuse/core'
 
 definePageMeta({ layout: 'default' })
 
@@ -103,6 +99,7 @@ const activeFilter = ref<typeof filters[number]>('All')
 
 const selectedEndpointId = computed(() => typeof route.params.endpoint_id === 'string' ? route.params.endpoint_id : null)
 const hasPanelRoute = computed(() => Boolean(selectedEndpointId.value))
+const isDesktopPanel = useMediaQuery('(min-width: 1024px)')
 
 const filteredEndpoints = computed(() => {
   if (activeFilter.value === 'Active') return endpoints.value.filter(e => e.status === 'active')
@@ -112,20 +109,6 @@ const filteredEndpoints = computed(() => {
 </script>
 
 <style scoped>
-.filter-chip {
-  border: 0.5px solid #d3d1c7;
-  background: white;
-  border-radius: 20px;
-  padding: 5px 13px;
-  font-size: 11px;
-  color: #5f5e5a;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.1s;
-}
-.filter-chip:hover { background: #f5f4f0; }
-.filter-chip.active { background: #1a1a2e; color: #e8e4ff; border-color: transparent; }
-
 :deep(.endpoint-item.selected) {
   border-color: #534ab7;
   box-shadow: 0 0 0 1px rgba(83, 74, 183, 0.14);
@@ -142,22 +125,5 @@ const filteredEndpoints = computed(() => {
 }
 .panel-shell {
   min-width: 0;
-}
-
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: opacity 0.16s ease;
-}
-.drawer-enter-from,
-.drawer-leave-to {
-  opacity: 0;
-}
-.drawer-enter-active .drawer-panel,
-.drawer-leave-active .drawer-panel {
-  transition: transform 0.18s ease;
-}
-.drawer-enter-from .drawer-panel,
-.drawer-leave-to .drawer-panel {
-  transform: translateX(100%);
 }
 </style>

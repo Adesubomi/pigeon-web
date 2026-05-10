@@ -5,19 +5,21 @@
 
       <div class="flex items-center gap-2">
         <NuxtLink to="/events" class="text-[10px] text-brand-500 cursor-pointer hover:underline">View all</NuxtLink>
-        <button
+        <Button
           v-if="showClose"
-          class="panel-icon-btn"
+          variant="outline"
+          size="icon"
+          class="size-7 text-muted-foreground hover:text-foreground"
           aria-label="Close activity panel"
           @click="$emit('close')"
         >
           <PhX class="size-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
 
     <div class="flex-1 overflow-y-auto">
-      <div class="activity-event-list">
+      <div class="flex flex-col gap-2 p-4">
         <EventListItem
           v-for="ev in events"
           :key="ev.id ?? ev.path + ev.time"
@@ -33,7 +35,7 @@
 import {
   PhX,
 } from '@phosphor-icons/vue'
-import type {Event} from "~/domains/event/event.type";
+import type { Event } from '~/domains/event/event.type'
 
 
 withDefaults(defineProps<{
@@ -52,36 +54,3 @@ function openEvent(event: { id?: string }) {
   navigateTo(`/dashboard/activity/events/${event.id}`)
 }
 </script>
-
-<style scoped>
-.activity-event-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 14px 20px;
-}
-
-.panel-icon-btn {
-  width: 26px;
-  height: 26px;
-  border: 0.5px solid #d3d1c7;
-  background: none;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  color: #9e9c96;
-  transition: color 0.1s, background 0.1s;
-}
-.panel-icon-btn:hover {
-  color: #1a1a2e;
-  background: #f5f4f0;
-}
-
-.panel-icon-btn {
-  width: 30px;
-  height: 30px;
-}
-</style>

@@ -1,8 +1,12 @@
 <template>
-  <div class="device-badge" :class="error ? 'text-danger-500 bg-danger-50 border-danger-500/25' : ''">
+  <Badge
+    variant="outline"
+    class="gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-normal"
+    :class="error ? 'border-danger-500/25 bg-danger-50 text-danger-500' : 'bg-background text-sand-700'"
+  >
     <PhDesktop v-if="count > 0" class="size-2.5 shrink-0" />
     {{ count > 0 ? `${count} device${count > 1 ? 's' : ''}` : 'No device' }}
-  </div>
+  </Badge>
 </template>
 
 <script setup lang="ts">
@@ -13,15 +17,3 @@ defineProps<{
   error?: boolean
 }>()
 </script>
-
-<style scoped>
-.device-badge {
-  display: flex; align-items: center; gap: 5px;
-  background: #f5f4f0;
-  border: 0.5px solid #e2e0d8;
-  border-radius: 20px;
-  padding: 3px 9px;
-  font-size: 11px;
-  color: #5f5e5a;
-}
-</style>
