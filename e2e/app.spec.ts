@@ -78,17 +78,17 @@ test.describe('Pigeon Web App', () => {
       await page.getByRole('button', { name: 'Active', exact: true }).click()
       await page.waitForTimeout(300)
       
-      // Check that inactive and error endpoints are hidden
+      // Check that inactive endpoints are hidden
       // Active count should be 3 (str, gh, sh)
       await expect(linearEndpoint).not.toBeVisible()
       await expect(resendEndpoint).not.toBeVisible()
       await expect(stripeEndpoint).toBeVisible()
       
-      // Click Inactive filter (shows inactive AND error)
+      // Click Inactive filter
       await page.getByRole('button', { name: 'Inactive', exact: true }).click()
       await page.waitForTimeout(300)
       
-      // Should show inactive (ln) and error (rs) - active should be hidden
+      // Should show inactive endpoints (ln and rs) - active should be hidden
       await expect(linearEndpoint).toBeVisible()
       await expect(resendEndpoint).toBeVisible()
       await expect(stripeEndpoint).not.toBeVisible()

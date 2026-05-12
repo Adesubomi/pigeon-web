@@ -34,7 +34,7 @@
         <div class="grid grid-cols-4 gap-3">
           <StatCard label="Total events"     value="9,840"  sub="+12% vs last week" subClass="text-success-600" />
           <StatCard label="Delivery rate"    value="98.2%"  sub="63 failed"         dotClass="bg-success-600" />
-          <StatCard label="Active endpoints" value="4"      sub="1 error"           dotClass="bg-danger-500" />
+          <StatCard label="Active endpoints" value="3"      sub="2 inactive"        dotClass="bg-success-600" />
           <StatCard label="Avg latency"      value="84ms"   sub="-6ms vs last week" subClass="text-success-600" />
         </div>
 
@@ -65,21 +65,22 @@
               <div
                 v-for="dev in displayedDevices"
                 :key="dev.id"
-                class="device-card"
+                class="group"
               >
-                <!-- Device icon -->
-                <div class="device-icon">
+                <Item class="px-3 py-2.5 transition-colors group-hover:border-sand-400">
+                <ItemMedia class="size-7 rounded-md bg-background text-muted-foreground">
                   <component :is="deviceIcons[dev.icon]" class="size-3.5" />
-                </div>
+                </ItemMedia>
 
-                <!-- Name + platform -->
-                <div class="flex-1 min-w-0">
-                  <p class="text-[12px] font-medium text-navy truncate">{{ dev.name }}</p>
-                  <p class="text-[10px] text-sand-500 truncate">{{ dev.platform }}</p>
-                </div>
+                <ItemContent>
+                  <ItemTitle class="text-[12px]">{{ dev.name }}</ItemTitle>
+                  <ItemDescription class="text-[10px]">{{ dev.platform }}</ItemDescription>
+                </ItemContent>
 
-                <!-- Connection state: rounded square -->
-                <div class="conn-square" :class="dev.conn"></div>
+                <ItemActions>
+                  <span class="size-2 rounded-sm" :class="connectionClasses[dev.conn]" />
+                </ItemActions>
+                </Item>
               </div>
             </div>
             <NuxtLink v-if="devices.length > 5" to="/devices" class="view-all-link">
@@ -167,6 +168,11 @@ const isEndpointRoute = computed(() => route.path.startsWith('/dashboard/endpoin
 const hasDetailRoute = computed(() => route.path.startsWith('/dashboard/activity/events/') || isEndpointRoute.value)
 const isDashboardPanelOpen = computed(() => isActivityRoute.value || isEndpointRoute.value)
 const isDesktopPanel = useMediaQuery('(min-width: 1536px)')
+const connectionClasses = {
+  connected: 'bg-success-600',
+  degraded: 'bg-[#e08c2e]',
+  disconnected: 'bg-danger-500',
+} satisfies Record<Device['conn'], string>
 
 function toggleActivityPanel() {
   navigateTo(isDashboardPanelOpen.value ? '/dashboard' : '/dashboard/activity')
@@ -208,36 +214,5 @@ function closeDashboardPanel() {
 .sidebar-toggle-icon {
   transform: scaleX(-1);
 }
-
-/* ── Device cards ── */
-.device-card {
-  background: white;
-  border: 0.5px solid #e2e0d8;
-  border-radius: 8px;
-  padding: 9px 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: border-color 0.15s;
-}
-.device-card:hover { border-color: #b4b2a9; }
-
-.device-icon {
-  width: 28px; height: 28px;
-  background: #f5f4f0;
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  color: #888780;
-}
-
-.conn-square {
-  width: 8px; height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.conn-square.connected    { background: #1d9e75; }
-.conn-square.degraded     { background: #e08c2e; }
-.conn-square.disconnected { background: #e24b4a; }
 
 </style>

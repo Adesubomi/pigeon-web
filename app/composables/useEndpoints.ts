@@ -1,8 +1,10 @@
+import { readStorageJson, writeStorageJson } from '@/lib/browser-storage'
+
 export interface Endpoint {
   id: string
   name: string
   url: string
-  status: 'active' | 'inactive' | 'error'
+  status: 'active' | 'inactive'
   devices: number
   eventsToday: number | null
 }
@@ -19,6 +21,19 @@ export interface EndpointEvent {
   headers: Record<string, string>
 }
 
+export interface ConnectedClient {
+  id: string
+  endpointId: string
+  name: string
+  localUrl: string
+  enabled: boolean
+}
+
+export interface CreateEndpointInput {
+  name: string
+  subdomain: string
+}
+
 export interface EventLogEntry {
   id: string
   endpointId: string
@@ -30,12 +45,17 @@ export interface EventLogEntry {
 }
 
 type EventSeed = Omit<EndpointEvent, 'headers'>
+type LegacyEndpoint = Omit<Endpoint, 'status'> & { status: Endpoint['status'] | 'error' }
+
+const ENDPOINTS_STORAGE_KEY = 'pigeon:endpoints'
+const ENDPOINT_EVENTS_STORAGE_KEY = 'pigeon:endpoint-events'
+const ENDPOINT_CLIENTS_STORAGE_KEY = 'pigeon:endpoint-clients'
 
 const endpointSeeds: Endpoint[] = [
   { id: 'str', name: 'Stripe webhooks', url: 'https://relay.pigeon.sh/e/str_x9kq2mj4p', status: 'active', devices: 2, eventsToday: 842 },
   { id: 'gh', name: 'GitHub CI events', url: 'https://relay.pigeon.sh/e/gh_8wn3rlv0c', status: 'active', devices: 1, eventsToday: 217 },
   { id: 'sh', name: 'Shopify orders', url: 'https://relay.pigeon.sh/e/sh_4cv7xmk1z', status: 'active', devices: 1, eventsToday: 189 },
-  { id: 'rs', name: 'Resend email events', url: 'https://relay.pigeon.sh/e/rs_2bf9dkw5m', status: 'error', devices: 0, eventsToday: 36 },
+  { id: 'rs', name: 'Resend email events', url: 'https://relay.pigeon.sh/e/rs_2bf9dkw5m', status: 'inactive', devices: 0, eventsToday: 36 },
   { id: 'ln', name: 'Linear issues (paused)', url: 'https://relay.pigeon.sh/e/ln_7hq6tjy9r', status: 'inactive', devices: 1, eventsToday: null },
 ]
 
@@ -66,6 +86,23 @@ const rawEventSeeds: Record<string, EventSeed[]> = {
   ],
   ln: [
     { id: 'evt_5001', method: 'POST', path: '/issue.updated', time: '1h ago', receivedAt: '2026-05-08 15:14:52.037', size: '3.4 KB', source: '2001:db8:44b7::9', payload: '{ "issue": "PIG-41", "state": "In Review" }' },
+  ],
+}
+
+const connectedClientSeeds: Record<string, ConnectedClient[]> = {
+  str: [
+    { id: 'client-mbp-ade', endpointId: 'str', name: 'MacBook Pro (Ade)', localUrl: 'localhost:3000', enabled: true },
+    { id: 'client-mac-mini-office', endpointId: 'str', name: 'Mac mini (office)', localUrl: 'localhost:8080', enabled: false },
+  ],
+  gh: [
+    { id: 'client-gh-runner', endpointId: 'gh', name: 'Build runner', localUrl: 'localhost:4000', enabled: true },
+  ],
+  sh: [
+    { id: 'client-shop-counter', endpointId: 'sh', name: 'Shop counter', localUrl: 'localhost:5173', enabled: true },
+  ],
+  rs: [],
+  ln: [
+    { id: 'client-linear-dev', endpointId: 'ln', name: 'Local issue worker', localUrl: 'localhost:7001', enabled: true },
   ],
 }
 
@@ -100,11 +137,82 @@ const eventSeeds = Object.fromEntries(
   ]),
 ) as Record<string, EndpointEvent[]>
 
+function normalizeEndpoint(endpoint: Endpoint | LegacyEndpoint): Endpoint {
+  return {
+    ...endpoint,
+    status: endpoint.status === 'active' ? 'active' : 'inactive',
+  }
+}
+
 export function useEndpoints() {
   const endpoints = useState<Endpoint[]>('endpoints', () => endpointSeeds)
   const endpointEvents = useState<Record<string, EndpointEvent[]>>('endpoint-events', () => eventSeeds)
+  const endpointClients = useState<Record<string, ConnectedClient[]>>('endpoint-clients', () => connectedClientSeeds)
+  const storageHydrated = useState('endpoints:storage-hydrated', () => false)
+  const storageBound = useState('endpoints:storage-bound', () => false)
+
+  if (import.meta.client && !storageHydrated.value) {
+    endpoints.value = readStorageJson<(Endpoint | LegacyEndpoint)[]>(ENDPOINTS_STORAGE_KEY, endpointSeeds)
+      .map(normalizeEndpoint)
+    endpointEvents.value = readStorageJson<Record<string, EndpointEvent[]>>(ENDPOINT_EVENTS_STORAGE_KEY, eventSeeds)
+    endpointClients.value = readStorageJson<Record<string, ConnectedClient[]>>(ENDPOINT_CLIENTS_STORAGE_KEY, connectedClientSeeds)
+    storageHydrated.value = true
+  }
+
+  if (import.meta.client && !storageBound.value) {
+    watch(endpoints, value => writeStorageJson(ENDPOINTS_STORAGE_KEY, value), { deep: true })
+    watch(endpointEvents, value => writeStorageJson(ENDPOINT_EVENTS_STORAGE_KEY, value), { deep: true })
+    watch(endpointClients, value => writeStorageJson(ENDPOINT_CLIENTS_STORAGE_KEY, value), { deep: true })
+    storageBound.value = true
+  }
 
   const getEndpoint = (id: string) => endpoints.value.find(endpoint => endpoint.id === id) ?? null
+  const setEndpointStatus = (id: string, status: Endpoint['status']) => {
+    const endpoint = getEndpoint(id)
+    if (endpoint) endpoint.status = status
+  }
+  const setEndpointActive = (id: string, active: boolean) => {
+    setEndpointStatus(id, active ? 'active' : 'inactive')
+  }
+  const toggleEndpointActive = (id: string) => {
+    const endpoint = getEndpoint(id)
+    if (endpoint) setEndpointActive(id, endpoint.status !== 'active')
+  }
+  const addEndpoint = (endpoint: Endpoint) => {
+    endpoints.value = [endpoint, ...endpoints.value]
+    endpointEvents.value = {
+      ...endpointEvents.value,
+      [endpoint.id]: [],
+    }
+    endpointClients.value = {
+      ...endpointClients.value,
+      [endpoint.id]: [],
+    }
+  }
+  const deleteEndpoint = (id: string) => {
+    endpoints.value = endpoints.value.filter(endpoint => endpoint.id !== id)
+    const { [id]: _deletedEvents, ...remainingEvents } = endpointEvents.value
+    const { [id]: _deletedClients, ...remainingClients } = endpointClients.value
+    endpointEvents.value = remainingEvents
+    endpointClients.value = remainingClients
+  }
+  const getConnectedClients = (endpointId: string) => endpointClients.value[endpointId] ?? []
+  const replaceConnectedClients = (endpointId: string, clients: ConnectedClient[]) => {
+    endpointClients.value = {
+      ...endpointClients.value,
+      [endpointId]: clients,
+    }
+    const endpoint = getEndpoint(endpointId)
+    if (endpoint) endpoint.devices = clients.length
+  }
+  const setConnectedClientEnabled = (endpointId: string, clientId: string, enabled: boolean) => {
+    replaceConnectedClients(endpointId, getConnectedClients(endpointId).map(client => (
+      client.id === clientId ? { ...client, enabled } : client
+    )))
+  }
+  const deleteConnectedClient = (endpointId: string, clientId: string) => {
+    replaceConnectedClients(endpointId, getConnectedClients(endpointId).filter(client => client.id !== clientId))
+  }
   const getEvents = (endpointId: string) => endpointEvents.value[endpointId] ?? []
   const getEvent = (endpointId: string, eventId: string) => getEvents(endpointId).find(event => event.id === eventId) ?? null
   const getEventLog = (limit?: number) => {
@@ -132,6 +240,15 @@ export function useEndpoints() {
   return {
     endpoints,
     getEndpoint,
+    setEndpointActive,
+    setEndpointStatus,
+    toggleEndpointActive,
+    addEndpoint,
+    deleteEndpoint,
+    getConnectedClients,
+    replaceConnectedClients,
+    setConnectedClientEnabled,
+    deleteConnectedClient,
     getEvents,
     getEvent,
     getEventLog,

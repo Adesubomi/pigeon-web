@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: process.env.NUXT_DEVTOOLS === 'true' },
   modules: ['shadcn-nuxt'],
-  css: ['~/assets/css/main.css'],
+  css: ['vue-sonner/style.css', '~/assets/css/main.css'],
   shadcn: {
     prefix: '',
     componentDir: '@/components/ui',
@@ -17,6 +17,7 @@ export default defineNuxtConfig({
         '@phosphor-icons/vue',
         'lucide-vue-next',
         'reka-ui',
+        'vue-sonner',
       ]
     }
   },
