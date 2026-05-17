@@ -51,6 +51,7 @@
             :playback-pending="isEndpointActionPending(endpointActionKey(ep.id, 'activation'))"
             :delete-pending="isEndpointDeleteActionPending(ep.id)"
             :delete-loading="isEndpointActionPending(endpointActionKey(ep.id, 'delete-init'))"
+            :open-url="getEndpointInspectUrl(ep.id)"
             :class="{ selected: selectedEndpointId === ep.id }"
             @open="navigateTo(`/endpoints/${ep.id}`)"
             @toggle-playback="toggleEndpointPlayback(ep)"
@@ -244,7 +245,7 @@ const endpointSubdomainEdited = ref(false)
 const deleteDialogOpen = ref(false)
 const deleteConfirmationWord = ref('')
 const deleteConfirmationValue = ref('')
-const activePlan = ref<'Solo' | 'Builder' | 'Custom'>('Builder')
+const { activePlan } = useWorkspacePlan()
 
 const selectedEndpointId = computed(() => typeof route.params.endpoint_id === 'string' ? route.params.endpoint_id : null)
 const hasPanelRoute = computed(() => Boolean(selectedEndpointId.value))
@@ -266,6 +267,7 @@ const filteredEndpoints = computed(() => {
 const normalizedEndpointName = computed(() => endpointName.value.trim())
 const normalizedEndpointSubdomain = computed(() => normalizeSubdomain(endpointSubdomain.value))
 const effectiveEndpointSubdomain = computed(() => canConfigureSubdomain.value ? normalizedEndpointSubdomain.value : generatedEndpointSubdomain.value)
+const { getEndpointPreviewUrl } = useEndpointPreviewUrl()
 const endpointSubdomainError = computed(() => {
   if (!effectiveEndpointSubdomain.value) return 'Subdomain is required.'
   if (!isValidSubdomain(effectiveEndpointSubdomain.value)) return 'Use a token like ln_7hq6tjy9r.'
@@ -276,8 +278,8 @@ const showEndpointNameError = computed(() => endpointNameTouched.value && !norma
 const showEndpointSubdomainError = computed(() => endpointSubdomainTouched.value && Boolean(endpointSubdomainError.value))
 const canCreateEndpoint = computed(() => Boolean(normalizedEndpointName.value && !endpointSubdomainError.value))
 const endpointPreviewUrl = computed(() => {
-  const subdomain = effectiveEndpointSubdomain.value || 'subdomain'
-  return `https://${subdomain}.pigeon.sh/e/...`
+  const endpointId = createEndpointIdPreview(effectiveEndpointSubdomain.value) || 'endpoint_id'
+  return getEndpointPreviewUrl(endpointId)
 })
 
 watch([generatedEndpointSubdomain, canConfigureSubdomain], ([generatedSubdomain, canConfigure]) => {
@@ -297,6 +299,10 @@ async function toggleEndpointPlayback(endpoint: Pick<Endpoint, 'id' | 'name' | '
 function isEndpointDeleteActionPending(endpointId: string) {
   return isEndpointActionPending(endpointActionKey(endpointId, 'delete-init'))
     || isEndpointActionPending(endpointActionKey(endpointId, 'delete'))
+}
+
+function getEndpointInspectUrl(endpointId: string) {
+  return `/e/inspect/${endpointId}`
 }
 
 function openCreateEndpointDialog() {
@@ -439,6 +445,13 @@ function createRandomSubdomain() {
   const prefix = Array.from(values.slice(0, 2), value => prefixAlphabet[value % prefixAlphabet.length]).join('')
   const token = Array.from(values.slice(2), value => tokenAlphabet[value % tokenAlphabet.length]).join('')
   return `${prefix}_${token}`
+}
+
+function createEndpointIdPreview(subdomain: string) {
+  return subdomain
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-/g, '')
+    .slice(0, 10)
 }
 
 function getEndpointSubdomain(endpoint: Endpoint) {

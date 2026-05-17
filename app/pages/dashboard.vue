@@ -49,6 +49,7 @@
                 v-for="ep in displayedEndpoints"
                 :key="ep.id"
                 :endpoint="ep"
+                :open-url="getEndpointInspectUrl(ep.id)"
                 :class="{ selected: selectedEndpointId === ep.id }"
                 :to="`/dashboard/endpoints/${ep.id}`"
               />
@@ -180,6 +181,10 @@ function toggleActivityPanel() {
 
 function closeDashboardPanel() {
   navigateTo('/dashboard')
+}
+
+function getEndpointInspectUrl(endpointId: string) {
+  return `/e/inspect/${endpointId}`
 }
 </script>
 

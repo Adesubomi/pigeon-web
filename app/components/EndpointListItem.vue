@@ -30,7 +30,7 @@
         </span>
       </Button>
       <div class="flex min-w-0 items-center gap-1.5">
-        <span class="truncate font-mono text-[11px] text-muted-foreground">{{ endpoint.url }}</span>
+        <span class="truncate font-mono text-[11px] text-muted-foreground">{{ previewUrl }}</span>
         <Button
           v-if="showCopyControl"
           variant="ghost"
@@ -79,7 +79,7 @@
         <a
           v-if="showOpenControl"
           class="inline-flex size-8 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          :href="previewUrl"
+          :href="openUrl"
           target="_blank"
           rel="noopener noreferrer"
           title="Open monitoring screen"
@@ -141,6 +141,7 @@ const props = withDefaults(defineProps<{
   deletePending?: boolean
   deleteLoading?: boolean
   previewUrl?: string
+  openUrl?: string
   to?: string
 }>(), {
   showDeviceCount: false,
@@ -153,6 +154,7 @@ const props = withDefaults(defineProps<{
   deletePending: false,
   deleteLoading: false,
   previewUrl: undefined,
+  openUrl: undefined,
   to: undefined,
 })
 
@@ -166,10 +168,12 @@ const emit = defineEmits<{
 const { copied: copiedUrl, copyText } = useCopyAction({
   errorMessage: 'Could not copy endpoint URL',
 })
+const { getEndpointPreviewUrl } = useEndpointPreviewUrl()
 const deviceCount = computed(() => props.endpoint.devices ?? 0)
 const eventCount = computed(() => props.endpoint.eventsToday ?? props.endpoint.events ?? null)
 const formattedEventCount = computed(() => eventCount.value == null ? '-' : eventCount.value.toLocaleString())
-const previewUrl = computed(() => props.previewUrl ?? props.endpoint.url)
+const previewUrl = computed(() => props.previewUrl ?? getEndpointPreviewUrl(props.endpoint.id))
+const openUrl = computed(() => props.openUrl ?? previewUrl.value)
 const copyLabel = computed(() => copiedUrl.value ? 'Copied' : 'Copy URL')
 const deleteLabel = computed(() => props.deleteLoading ? 'Preparing delete confirmation' : 'Delete')
 

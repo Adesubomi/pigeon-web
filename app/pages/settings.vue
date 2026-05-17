@@ -29,7 +29,7 @@
             <div class="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 class="text-[13px] font-semibold text-navy">Current Plan</h2>
-                <p class="text-xs text-sand-500 mt-0.5">You are on the Builder plan</p>
+                <p class="text-xs text-sand-500 mt-0.5">You are on the {{ activePlan }} plan</p>
               </div>
               <div class="inline-flex shrink-0 items-center rounded-full bg-sand-50 p-0.5">
                 <Badge
@@ -248,9 +248,9 @@
             
             <div class="space-y-2">
               <Item v-for="invoice in invoices" :key="invoice.id" class="border-0 border-b border-sand-100 bg-transparent px-0 py-3 last:border-0">
-                <ItemMedia class="min-w-[60px] text-center">
-                    <p class="text-[10px] text-sand-500 uppercase">{{ invoice.month }}</p>
-                    <p class="text-lg font-semibold text-navy">{{ invoice.day }}</p>
+                <ItemMedia class="min-w-[60px] flex-col gap-1 text-center">
+                    <p class="text-lg font-semibold leading-none text-navy">{{ invoice.month }}</p>
+                    <p class="text-[10px] leading-none text-sand-500">{{ invoice.day }}</p>
                 </ItemMedia>
                 <ItemContent>
                   <ItemTitle class="font-normal">{{ invoice.description }}</ItemTitle>
@@ -305,7 +305,7 @@
                 <h2 class="text-[13px] font-semibold text-navy">Team Members</h2>
                 <p class="text-xs text-sand-500 mt-0.5">Manage access to your workspace</p>
               </div>
-              <Button size="sm">
+              <Button size="sm" disabled>
                 Invite Member
               </Button>
             </div>
@@ -363,11 +363,12 @@ const invoices = [
   { id: 4, month: 'Feb', day: '01', description: 'Pro Plan (Prorated)', status: 'Paid', amount: '$14.50' },
 ]
 
-const usagePlanLabels = [
-  { name: 'Solo', active: false },
-  { name: 'Builder', active: true },
-  { name: 'Custom', active: false },
-] as const
+const { activePlan } = useWorkspacePlan()
+const usagePlanLabels = computed(() => [
+  { name: 'Solo', active: activePlan.value === 'Solo' },
+  { name: 'Builder', active: activePlan.value === 'Builder' },
+  { name: 'Business', active: activePlan.value === 'Business' },
+] as const)
 
 type UsageMetricId = 'ingestion' | 'delivery' | 'queries'
 type UsageRow = {

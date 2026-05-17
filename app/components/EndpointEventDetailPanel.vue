@@ -229,6 +229,7 @@ const eventContext = computed(() => {
 const endpoint = computed(() => eventContext.value?.endpoint ?? null)
 const event = computed(() => eventContext.value?.event ?? null)
 const endpointId = computed(() => endpoint.value?.id ?? explicitEndpointId.value)
+const { getEndpointPreviewUrl } = useEndpointPreviewUrl()
 const activeTab = computed(() => route.query.tab === 'headers' ? 'headers' : 'body')
 const {
   copied,
@@ -281,7 +282,7 @@ const eventUrl = computed(() => {
   if (!event.value) return ''
   if (/^https?:\/\//i.test(event.value.path)) return event.value.path
 
-  const baseUrl = endpoint.value?.url.replace(/\/+$/, '') ?? ''
+  const baseUrl = endpointId.value ? getEndpointPreviewUrl(endpointId.value).replace(/\/+$/, '') : ''
   const path = event.value.path.startsWith('/') ? event.value.path : `/${event.value.path}`
 
   return `${baseUrl}${path}`

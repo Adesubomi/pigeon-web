@@ -5,7 +5,7 @@
         <div class="mb-1.5 flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="truncate text-[13px] font-semibold text-foreground">{{ endpoint.name }}</p>
-            <p class="break-all font-mono text-[11px] leading-relaxed text-muted-foreground">{{ endpoint.url }}</p>
+            <p class="break-all font-mono text-[11px] leading-relaxed text-muted-foreground">{{ endpointPreviewUrl }}</p>
           </div>
 
           <Button
@@ -293,7 +293,9 @@ let pairingSuccessTimer: number | undefined
 
 const endpointId = computed(() => typeof route.params.endpoint_id === 'string' ? route.params.endpoint_id : '')
 const endpoint = computed(() => getEndpoint(endpointId.value))
+const { getEndpointPreviewUrl } = useEndpointPreviewUrl()
 const events = computed(() => getEvents(endpointId.value))
+const endpointPreviewUrl = computed(() => endpointId.value ? getEndpointPreviewUrl(endpointId.value) : '')
 const activeTab = computed(() => route.query.tab === 'clients' ? 'clients' : 'events')
 const isDashboardRoute = computed(() => route.path.startsWith('/dashboard'))
 const closePath = computed(() => isDashboardRoute.value ? '/dashboard' : '/endpoints')
@@ -309,7 +311,7 @@ const pairingCopyLabel = computed(() => copiedPairingCode.value ? 'Copied' : 'Co
 async function copyEndpointUrl() {
   if (!endpoint.value) return
 
-  await copyEndpointText(endpoint.value.url)
+  await copyEndpointText(endpointPreviewUrl.value)
 }
 
 async function setEndpointActivation(active: boolean) {
