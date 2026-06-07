@@ -1,0 +1,657 @@
+PIGEON BACKEND REQUIREMENTS FROM pigeon-web
+===========================================
+
+Source inspected:
+  - app/composables/useEndpoints.ts
+  - app/composables/useEndpointActions.ts
+  - app/services/endpoint-actions.mock.ts
+  - app/components/EndpointDetailPanel.vue
+  - app/components/EndpointEventDetailPanel.vue
+  - app/components/EndpointInspectPreview.vue
+  - app/pages/e/inspect/[endpoint_id].vue
+  - app/pages/e/inspect/[endpoint_id]/events/[event_id].vue
+  - app/pages/endpoints.vue
+  - app/pages/events.vue
+  - app/pages/dashboard.vue
+  - app/pages/pricing.vue
+  - app/pages/settings.vue
+  - app/pages/profile.vue
+  - app/pages/index.vue
+
+The current app uses mocked browser state and localStorage. The endpoints below are the backend contract required to make the existing UI real.
+
+
+1. REQUIRED MODELS
+------------------
+
+Endpoint
+  id: string
+  name: string
+  url: string
+  status: "active" | "inactive"
+  devices: number
+  eventsToday: number | null
+
+EndpointEvent
+  id: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  path: string
+  time: string
+  receivedAt: string
+  size: string
+  source: string
+  payload: string
+  headers: Record<string, string>
+
+ConnectedClient
+  id: string
+  endpointId: string
+  name: string
+  localUrl: string
+  enabled: boolean
+
+
+2. AUTH AND CURRENT USER
+------------------------
+
+GET /api/session
+  Used by: authenticated app shell, profile, settings.
+  Returns the current user, workspace, and plan.
+  Response:
+    {
+      user: { id, name, email, avatarUrl?, timezone },
+      workspace: { id, name, role },
+      plan: "Solo" | "Builder" | "Business"
+    }
+
+GET /api/auth/google
+  Used by: sign-in screen "Continue with Google".
+  Starts Google OAuth.
+
+GET /api/auth/github
+  Used by: sign-in screen "Continue with GitHub".
+  Starts GitHub OAuth.
+
+GET /api/auth/:provider/callback
+  Used by: OAuth providers.
+  Completes OAuth and establishes the app session.
+
+POST /api/auth/logout
+  Used by: app shell when sign out is added.
+  Ends the session.
+
+
+3. PROFILE AND CONNECTED ACCOUNTS
+---------------------------------
+
+GET /api/profile
+  Used by: /profile.
+  Returns user profile and connected account state.
+
+PATCH /api/profile
+  Used by: "Save Changes" on /profile.
+  Body: { name?: string, timezone?: string }
+
+POST /api/profile/password
+  Used by: "Change Password" on /profile.
+  Body: { currentPassword: string, newPassword: string }
+
+GET /api/profile/connections
+  Used by: connected accounts list on /profile.
+  Returns:
+    [
+      { provider: "google", connected: boolean, email?: string },
+      { provider: "github", connected: boolean, email?: string }
+    ]
+
+POST /api/profile/connections/:provider
+  Used by: "Connect" provider action.
+  Starts provider connection OAuth.
+
+DELETE /api/profile/connections/:provider
+  Used by: "Disconnect" provider action.
+  Disconnects Google/GitHub from the account.
+
+DELETE /api/profile/account
+  Used by: "Delete Account" danger-zone action.
+  Deletes account, workspace, endpoints, event history, and paired clients.
+
+
+4. ENDPOINTS
+------------
+
+GET /api/endpoints
+  Used by: /endpoints, /dashboard endpoint list.
+  Query: search?, status?, limit?, cursor?
+  Returns: Endpoint[]
+
+POST /api/endpoints
+  Used by: "New endpoint" dialog.
+  Body:
+    {
+      name: string,
+      subdomain: string
+    }
+  Returns: Endpoint
+  Backend responsibilities:
+    - Normalize and validate subdomain.
+    - Enforce uniqueness.
+    - Generate endpoint id and relay URL.
+    - Initialize empty event and client lists.
+
+GET /api/endpoints/:endpoint_id
+  Used by: endpoint detail panels and inspection initial load.
+  Returns: Endpoint
+
+PATCH /api/endpoints/:endpoint_id/status
+  Used by: pause/resume switch and play/pause buttons.
+  Body: { active: boolean }
+  Returns:
+    {
+      endpointId: string,
+      status: "active" | "inactive"
+    }
+
+POST /api/endpoints/:endpoint_id/delete-confirmation
+  Used by: delete endpoint dialog before final delete.
+  Returns:
+    {
+      endpointId: string,
+      confirmationWord: string
+    }
+
+DELETE /api/endpoints/:endpoint_id
+  Used by: confirmed endpoint delete.
+  Body: { confirmationWord?: string }
+  Returns: { endpointId: string }
+
+
+5. EVENTS
+---------
+
+GET /api/events
+  Used by: /events and dashboard activity.
+  Query: endpointId?, method?, start?, end?, limit?, cursor?
+  Returns compact global log rows:
+    [
+      {
+        id,
+        endpointId,
+        method,
+        path,
+        endpoint,
+        time,
+        size
+      }
+    ]
+
+GET /api/events/:event_id
+  Used by: /events/:event_id and /dashboard/activity/events/:event_id.
+  Returns:
+    {
+      endpoint: Endpoint,
+      event: EndpointEvent
+    }
+
+GET /api/endpoints/:endpoint_id/events
+  Used by: endpoint detail panel and inspection event list.
+  Query: method?, path?, limit?, cursor?
+  Returns: EndpointEvent[]
+
+GET /api/endpoints/:endpoint_id/events/:event_id
+  Used by: endpoint event detail and inspection event detail.
+  Returns: EndpointEvent
+
+POST /api/endpoints/:endpoint_id/events/:event_id/publish
+  Used by: "Publish" button on event detail.
+  Replays a captured event to enabled connected clients.
+  Returns:
+    {
+      endpointId: string,
+      eventId: string,
+      path: string,
+      publishedAt: string
+    }
+
+
+6. PUBLIC WEBHOOK INGESTION
+---------------------------
+
+ANY /e/:endpoint_id/:path*
+  Used by: external webhook senders.
+  Accepts: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS.
+
+ANY /:path* on endpoint subdomains
+  Used by: production relay URLs when the endpoint id/subdomain is in the hostname.
+  Example production shape:
+    https://{endpoint_id}.pigeon.sh/orders/create
+
+Webhook ingest behavior:
+  - Resolve the endpoint from path or hostname.
+  - Verify endpoint exists.
+  - Apply endpoint active/inactive policy.
+  - Store raw request data:
+      method,
+      path,
+      query,
+      headers,
+      raw body,
+      source IP,
+      size,
+      receivedAt
+  - Create an EndpointEvent.
+  - Push the new event to inspection sockets.
+  - Relay the request to enabled connected clients.
+  - Return quickly to the webhook sender.
+
+Suggested ingest responses:
+  200 { ok: true, eventId: string }
+  204 for HEAD or empty OPTIONS handling
+  404 for unknown endpoint
+  410 if paused endpoints should reject traffic
+  413 for payloads over plan limit
+  429 for rate limits
+
+
+7. INSPECTION SCREEN HANDSHAKE AND UPGRADE
+------------------------------------------
+
+Frontend routes:
+  GET /e/inspect/:endpoint_id
+  GET /e/inspect/:endpoint_id/events/:event_id
+
+These are page routes in Nuxt. The backend still needs data and a realtime stream for the inspection screen.
+
+GET /api/inspect/:endpoint_id
+  Used by: inspection screen initial render.
+  Returns:
+    {
+      endpoint: Endpoint,
+      connected: boolean,
+      events: EndpointEvent[]
+    }
+
+GET /api/inspect/:endpoint_id/events/:event_id
+  Used by: selected inspection event detail.
+  Returns: EndpointEvent
+
+GET /ws/inspect/:endpoint_id
+  Used by: inspection screen realtime updates.
+  This endpoint performs the HTTP webhook/live-inspection handshake, then upgrades to WebSocket.
+
+Handshake request:
+  GET /ws/inspect/:endpoint_id HTTP/1.1
+  Host: relay.pigeon.sh
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Key: <base64 client nonce>
+  Sec-WebSocket-Version: 13
+  Sec-WebSocket-Protocol: pigeon.inspect.v1
+  Cookie: pigeon_session=<session cookie>
+
+Successful upgrade response:
+  HTTP/1.1 101 Switching Protocols
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Accept: <derived accept key>
+  Sec-WebSocket-Protocol: pigeon.inspect.v1
+
+Server messages after upgrade:
+  {
+    "type": "snapshot",
+    "endpoint": Endpoint,
+    "connected": boolean,
+    "events": EndpointEvent[]
+  }
+
+  {
+    "type": "event.created",
+    "event": EndpointEvent
+  }
+
+  {
+    "type": "endpoint.status",
+    "status": "active" | "inactive",
+    "connected": boolean,
+    "deviceCount": number
+  }
+
+  {
+    "type": "client.connected",
+    "client": ConnectedClient
+  }
+
+  {
+    "type": "client.disconnected",
+    "clientId": string
+  }
+
+  {
+    "type": "pong",
+    "ts": string
+  }
+
+Browser messages after upgrade:
+  {
+    "type": "subscribe",
+    "endpointId": string
+  }
+
+  {
+    "type": "ping",
+    "ts": string
+  }
+
+Inspection behavior required by the UI:
+  - Shows "Connected" when endpoint is active and device count is above zero.
+  - Shows incoming events live.
+  - Opens event detail by event id.
+  - Event detail exposes body, headers, method, path, received timestamp, size, and source.
+
+Optional fallback:
+
+GET /sse/inspect/:endpoint_id
+  Used when WebSockets are blocked.
+  Content-Type: text/event-stream
+  Event names: snapshot, event.created, endpoint.status, client.connected, client.disconnected.
+
+
+8. CONNECTED CLIENTS AND LOCAL RELAY UPGRADE
+--------------------------------------------
+
+GET /api/endpoints/:endpoint_id/clients
+  Used by: endpoint Clients tab.
+  Returns: ConnectedClient[]
+
+POST /api/endpoints/:endpoint_id/clients/pairing
+  Used by: "Connect client".
+  Returns:
+    {
+      endpointId: string,
+      pairingCode: string,
+      expiresAt: string
+    }
+  UI expects pairingCode shaped like XXXX-XXXX-XXXX.
+
+PATCH /api/endpoints/:endpoint_id/clients/:client_id
+  Used by: client enable/disable switch.
+  Body: { enabled: boolean }
+  Returns:
+    {
+      endpointId: string,
+      clientId: string,
+      enabled: boolean
+    }
+
+DELETE /api/endpoints/:endpoint_id/clients/:client_id
+  Used by: delete client button.
+  Returns:
+    {
+      endpointId: string,
+      clientId: string
+    }
+
+GET /ws/clients
+  Used by: local relay client app/CLI.
+  This endpoint performs the client handshake and upgrades to WebSocket.
+
+Handshake request:
+  GET /ws/clients HTTP/1.1
+  Host: relay.pigeon.sh
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Key: <base64 client nonce>
+  Sec-WebSocket-Version: 13
+  Sec-WebSocket-Protocol: pigeon.client.v1
+
+Successful upgrade response:
+  HTTP/1.1 101 Switching Protocols
+  Upgrade: websocket
+  Connection: Upgrade
+  Sec-WebSocket-Accept: <derived accept key>
+  Sec-WebSocket-Protocol: pigeon.client.v1
+
+First message from new client:
+  {
+    "type": "pair",
+    "pairingCode": "XXXX-XXXX-XXXX",
+    "client": {
+      "name": string,
+      "localUrl": string
+    }
+  }
+
+Server response to new client:
+  {
+    "type": "paired",
+    "endpointId": string,
+    "client": ConnectedClient,
+    "token": string
+  }
+
+First message from returning client:
+  {
+    "type": "authenticate",
+    "clientId": string,
+    "token": string
+  }
+
+Server-to-client delivery message:
+  {
+    "type": "webhook.request",
+    "deliveryId": string,
+    "event": EndpointEvent,
+    "target": {
+      "localUrl": string
+    }
+  }
+
+Client-to-server delivery result:
+  {
+    "type": "webhook.response",
+    "deliveryId": string,
+    "status": number,
+    "headers": Record<string, string>,
+    "body": string,
+    "durationMs": number
+  }
+
+Client behavior required by endpoint Clients tab:
+  - Pairing code starts in waiting state.
+  - A successful websocket pair should create a ConnectedClient.
+  - Inspection and endpoint detail screens should receive client.connected.
+  - Disabled clients remain listed but do not receive webhook.request deliveries.
+
+
+9. DASHBOARD AND SETTINGS USAGE
+-------------------------------
+
+GET /api/dashboard/summary
+  Used by: /dashboard stat cards.
+  Returns:
+    {
+      totalEvents: number,
+      totalEventsChangePercent: number,
+      deliveryRate: number,
+      failedDeliveries: number,
+      activeEndpoints: number,
+      inactiveEndpoints: number,
+      averageLatencyMs: number
+    }
+
+GET /api/settings/usage
+  Used by: /settings usage tab.
+  Returns:
+    {
+      plan: "Solo" | "Builder" | "Business",
+      events: { used: number, limit: number | null },
+      endpoints: { used: number, limit: number | null },
+      storage: { usedBytes: number, limitBytes: number | null }
+    }
+
+GET /api/settings/usage/timeseries
+  Used by: /settings usage chart.
+  Query: metric=ingestion|delivery|queries&start=YYYY-MM-DD&end=YYYY-MM-DD
+  Returns:
+    [
+      {
+        date: "YYYY-MM-DD",
+        ingestion: number,
+        delivery: number,
+        queries: number
+      }
+    ]
+
+
+10. PRICING, BILLING, AND PAYSTACK
+----------------------------------
+
+GET /api/billing/plan
+  Used by: pricing and settings plan display.
+  Returns:
+    {
+      plan: "Solo" | "Builder" | "Business",
+      currentPeriodEnd?: string
+    }
+
+POST /api/billing/plan/downgrade
+  Used by: pricing downgrade dialog.
+  Body:
+    {
+      fromPlan: string,
+      toPlan: "Solo",
+      reasons: string[],
+      comment: string
+    }
+  Returns:
+    {
+      fromPlan: string,
+      toPlan: "Solo",
+      changedAt: string
+    }
+
+POST /api/billing/business-contact
+  Used by: Business plan contact form.
+  Body:
+    {
+      planName: "Business",
+      name: string,
+      email: string,
+      company: string,
+      expectedUsage: string,
+      message: string
+    }
+  Returns: { requestedAt: string }
+
+POST /api/billing/paystack/initialize
+  Used by: Builder plan upgrade if checkout is moved server-side.
+  Body: { planName: "Builder" }
+  Returns:
+    {
+      authorizationUrl: string,
+      accessCode: string,
+      reference: string
+    }
+
+POST /api/billing/paystack/verify
+  Used by: Paystack success callback verification.
+  Body: { reference: string }
+  Returns:
+    {
+      plan: "Builder",
+      subscriptionCode?: string,
+      activatedAt: string
+    }
+
+POST /api/billing/paystack/webhook
+  Used by: Paystack server-to-server events.
+  Requires signature verification.
+
+GET /api/billing/payment-method
+  Used by: settings Billing tab.
+  Returns:
+    {
+      type: "card",
+      brand: string,
+      last4: string,
+      expiryMonth: number,
+      expiryYear: number,
+      isDefault: boolean
+    }
+
+POST /api/billing/payment-method
+  Used by: "Update" payment method.
+  Body: { authorizationCode?: string, cardToken?: string }
+
+GET /api/billing/invoices
+  Used by: billing history list.
+  Returns:
+    [
+      {
+        id: string,
+        description: string,
+        status: string,
+        amount: number,
+        currency: string,
+        issuedAt: string,
+        pdfUrl?: string
+      }
+    ]
+
+GET /api/billing/invoices/:invoice_id/download
+  Used by: invoice download button.
+  Returns: application/pdf
+
+POST /api/billing/subscription/cancel
+  Used by: Cancel Subscription dialog.
+  Body: { reason?: string }
+  Returns:
+    {
+      canceledAt: string,
+      effectiveEndDate: string
+    }
+
+
+11. ERROR CODES TO STANDARDIZE
+------------------------------
+
+400 Bad Request
+  Malformed JSON, missing required fields, unsupported method shape.
+
+401 Unauthorized
+  Missing or expired dashboard session.
+
+403 Forbidden
+  User does not belong to the workspace or cannot access the resource.
+
+404 Not Found
+  Unknown endpoint, event, client, invoice, account, or provider.
+
+409 Conflict
+  Duplicate subdomain, duplicate pairing, already-connected provider.
+
+410 Gone
+  Deleted endpoint or intentionally unavailable relay.
+
+413 Payload Too Large
+  Webhook payload exceeds workspace plan limit.
+
+422 Unprocessable Entity
+  Invalid subdomain, invalid pairing code, invalid downgrade/support form.
+
+429 Too Many Requests
+  Rate limit for webhook ingestion, replay, pairing, auth, or billing actions.
+
+
+12. BUILD ORDER
+---------------
+
+1. Session, workspace, and profile read endpoints.
+2. Endpoint list/create/read/status/delete.
+3. Endpoint event storage and global event log.
+4. Public webhook ingestion.
+5. Inspection WebSocket handshake and 101 upgrade.
+6. Connected client pairing plus /ws/clients upgrade.
+7. Event publish/replay delivery to enabled clients.
+8. Usage/dashboard aggregates.
+9. Billing, Paystack verification, invoices, support, and account management.

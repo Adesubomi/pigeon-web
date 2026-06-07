@@ -14,7 +14,8 @@ export default defineNuxtConfig({
     public: {
       appName: process.env.NUXT_APP_NAME ?? 'pigeon',
       appEnv: process.env.NUXT_ENV ?? 'dev',
-      appBaseUrl: process.env.NUXT_APP_BASE_URL ?? 'http://localhost:3000',
+      appBaseUrl: process.env.NUXT_PUBLIC_APP_BASE_URL ?? 'http://localhost:3000',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL ?? 'http://localhost:18080',
       payment: {
         provider: process.env.NUXT_PAYMENT_PROVIDER ?? 'mock',
         paystackPublicKey: process.env.NUXT_PAYSTACK_PUBLIC_KEY ?? '',

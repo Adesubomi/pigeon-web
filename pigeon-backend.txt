@@ -1,0 +1,400 @@
+PIGEON BACKEND — ENDPOINT BREAKDOWN
+=====================================
+Generated from pigeon-web frontend analysis.
+
+
+DOMAIN: AUTHENTICATION & IDENTITY
+---------------------------------
+
+POST /auth/google
+  → Initiate or complete Google OAuth login.
+  → Returns: session token + user profile.
+
+POST /auth/github
+  → Initiate or complete GitHub OAuth login.
+  → Returns: session token + user profile.
+
+POST /auth/logout
+  → Invalidate current session / clear cookies.
+
+GET /auth/me
+  → Get current authenticated user.
+  → Returns: { id, name, email, avatar, timezone, plan }.
+
+PUT /profile
+  → Update profile fields (name, timezone).
+  → Body: { name?: string, timezone?: string }
+
+POST /auth/change-password
+  → Change local password (if applicable).
+  → Body: { currentPassword, newPassword }
+
+DELETE /account
+  → Permanently delete workspace, endpoints, events, and user account.
+  → Requires confirmation.
+
+GET /auth/connections
+  → List connected OAuth providers (google, github).
+  → Returns: [{ provider, connected, email }].
+
+DELETE /auth/connections/:provider
+  → Disconnect an OAuth provider.
+  → provider ∈ [google, github]
+
+
+DOMAIN: WORKSPACE & PLAN
+------------------------
+
+GET /workspace/plan
+  → Get current workspace plan.
+  → Returns: { plan: "Solo" | "Builder" | "Business", expiresAt?, features }.
+
+POST /workspace/plan/downgrade
+  → Downgrade to a lower tier (e.g. Builder → Solo).
+  → Body: { fromPlan, toPlan, reasons: string[], comment? }
+
+POST /workspace/plan/upgrade
+  → Upgrade plan (or process Paystack callback).
+  → Body: { plan, paymentReference?, subscriptionCode? }
+
+POST /billing/contact-support
+  → Submit Business plan inquiry.
+  → Body: { planName, name, email, company, expectedUsage, message }
+
+
+DOMAIN: DASHBOARD & ANALYTICS
+-----------------------------
+
+GET /dashboard/stats
+  → Aggregated metrics for the dashboard top row.
+  → Returns: {
+      totalEvents: number,
+      deliveryRate: number,
+      failedDeliveries: number,
+      activeEndpoints: number,
+      inactiveEndpoints: number,
+      avgLatencyMs: number,
+    }
+
+GET /workspace/usage
+  → Current usage against plan limits.
+  → Returns: {
+      eventsUsed: number,
+      eventsLimit: number,
+      endpointsUsed: number,
+      endpointsLimit: number,
+      storageUsedBytes: number,
+      storageLimitBytes: number,
+    }
+
+GET /workspace/usage/timeseries
+  → Timeseries data for the usage chart.
+  → Query: ?metric=ingestion|delivery|queries&start=YYYY-MM-DD&end=YYYY-MM-DD
+  → Returns: [{ date, ingestion, delivery, queries }]
+
+GET /events
+  → Global event log (all endpoints combined).
+  → Query: ?limit=&offset=&startDate=&endDate=
+  → Returns: [{ id, endpointId, method, path, endpointName, time, size }]
+
+
+DOMAIN: ENDPOINTS
+-----------------
+
+GET /endpoints
+  → List all endpoints in the workspace.
+  → Query: ?status=active|inactive|all&search=&limit=&offset=
+  → Returns: Endpoint[]
+
+POST /endpoints
+  → Create a new relay endpoint.
+  → Body: { name: string, subdomain: string }
+  → Returns: Endpoint { id, name, url, status, devices, eventsToday }
+  → Validates subdomain uniqueness and format (^[a-z]{2}_[a-z0-9]{9}$).
+
+GET /endpoints/:endpoint_id
+  → Get a single endpoint by ID.
+  → Returns: Endpoint
+
+PATCH /endpoints/:endpoint_id/status
+  → Activate or pause an endpoint.
+  → Body: { active: boolean }
+  → Returns: { endpointId, status: "active" | "inactive" }
+
+POST /endpoints/:endpoint_id/delete-init
+  → Initiate deletion flow (returns confirmation word).
+  → Returns: { endpointId, confirmationWord: string }
+
+DELETE /endpoints/:endpoint_id
+  → Permanently delete endpoint and its events.
+  → Headers/Body may include confirmationWord for safety.
+  → Returns: { endpointId }
+
+
+DOMAIN: ENDPOINT EVENTS
+-----------------------
+
+GET /endpoints/:endpoint_id/events
+  → List events received by a specific endpoint.
+  → Query: ?limit=&offset=&method=&path=
+  → Returns: EndpointEvent[]
+
+GET /events/:event_id
+  → Lookup a single event by global ID.
+  → Returns: EndpointEvent (includes endpoint context).
+
+POST /endpoints/:endpoint_id/events/:event_id/publish
+  → Replay / relay an existing event to currently connected clients.
+  → Body: {} (action only)
+  → Returns: { endpointId, eventId, path, publishedAt }
+
+
+DOMAIN: CONNECTED CLIENTS (LOCAL RELAYS)
+----------------------------------------
+
+GET /endpoints/:endpoint_id/clients
+  → List clients paired to this endpoint.
+  → Returns: ConnectedClient[] { id, endpointId, name, localUrl, enabled }
+
+POST /endpoints/:endpoint_id/clients/pairing
+  → Generate a short-lived pairing code for a new local client.
+  → Returns: { endpointId, pairingCode: string }
+  → pairingCode format: XXXX-XXXX-XXXX (base32-like, 12 chars)
+
+PATCH /endpoints/:endpoint_id/clients/:client_id
+  → Enable or disable a client's connection.
+  → Body: { enabled: boolean }
+  → Returns: { endpointId, clientId, enabled }
+
+DELETE /endpoints/:endpoint_id/clients/:client_id
+  → Remove a paired client.
+  → Returns: { endpointId, clientId }
+
+
+DOMAIN: WEBHOOK INGESTION (PUBLIC)
+----------------------------------
+
+*  /w/:endpoint_id
+  → The public webhook receiver. Accepts ANY HTTP method.
+  → Methods supported: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+  → Behavior:
+    - Captures full HTTP request (headers, body, method, path, query, source IP).
+    - Stores it as an EndpointEvent.
+    - If endpoint is ACTIVE and has connected clients, relays the payload.
+    - Returns 200 OK (or 204 for HEAD/OPTIONS) to the sender immediately.
+  → URL patterns:
+    - Subdomain style (production): https://{subdomain}.pigeon.sh/e/{endpoint_id}
+    - Path style (dev):             https://relay.pigeon.sh/e/{endpoint_id}
+
+  Example: POST https://stripe_x9kq2mj4p.pigeon.sh/e/str_x9kq2mj4p/payment.succeeded
+
+
+DOMAIN: REAL-TIME / INSPECTION
+------------------------------
+
+GET /ws/endpoints/:endpoint_id
+  → WebSocket endpoint for the Inspection screen live view.
+  → This is the "handshake and upgrade" path.
+
+  HANDSHAKE:
+    Request:
+      GET /ws/endpoints/:endpoint_id HTTP/1.1
+      Host: relay.pigeon.sh
+      Connection: Upgrade
+      Upgrade: websocket
+      Sec-WebSocket-Key: <base64 nonce>
+      Sec-WebSocket-Version: 13
+      Authorization: Bearer <session_token>
+
+    Response (success):
+      HTTP/1.1 101 Switching Protocols
+      Upgrade: websocket
+      Connection: Upgrade
+      Sec-WebSocket-Accept: <hashed key>
+
+  UPGRADED PROTOCOL:
+    After 101 response, the connection becomes a full-duplex WebSocket.
+    Messages (server → client):
+      { type: "event", payload: EndpointEvent }
+      { type: "client.connected",    payload: { clientId, name } }
+      { type: "client.disconnected", payload: { clientId } }
+      { type: "status",            payload: { connected: boolean, deviceCount: number } }
+    Messages (client → server):
+      { type: "subscribe", endpointId: string }
+      { type: "ping" }
+
+  PURPOSE:
+    - Powers the EndpointInspectPreview.vue live event stream.
+    - Displays events in real-time as they are ingested by /w/:endpoint_id.
+    - Shows connection status dot (Connected / Disconnected).
+
+ALTERNATIVE SSE FALLBACK:
+  GET /sse/endpoints/:endpoint_id/events
+    → Server-Sent Events stream for environments where WebSocket is blocked.
+    → Content-Type: text/event-stream
+    → Events: event, client.connected, client.disconnected, status
+
+
+DOMAIN: BILLING
+---------------
+
+GET /billing/payment-method
+  → Get default payment method on file.
+  → Returns: { type: "card", last4: "4242", brand: "visa", expiryMonth, expiryYear }
+
+POST /billing/payment-method
+  → Add or update payment method (token from Paystack).
+  → Body: { authorizationCode?, cardToken? }
+
+GET /billing/invoices
+  → List past invoices.
+  → Returns: [{ id, month, day, description, status, amount, currency, pdfUrl }]
+
+GET /billing/invoices/:invoice_id/download
+  → Download invoice PDF.
+  → Returns: application/pdf blob.
+
+POST /billing/cancel-subscription
+  → Cancel recurring subscription at end of period.
+  → Returns: { canceledAt, effectiveEndDate }
+
+
+DOMAIN: PAYSTACK CALLBACKS (WEBHOOK)
+--------------------------------------
+
+POST /webhooks/paystack
+  → Receives Paystack transaction events.
+  → Events handled:
+      - charge.success      → activate Builder plan
+      - subscription.create → update subscription state
+      - invoice.payment_succeeded
+      - invoice.payment_failed
+  → Must verify signature (x-paystack-signature).
+
+
+DATA MODELS REFERENCE
+---------------------
+
+Endpoint {
+  id: string           // e.g. "str", "gh", "sh"
+  name: string
+  url: string          // public webhook URL
+  status: "active" | "inactive"
+  devices: number       // connected client count
+  eventsToday: number | null
+}
+
+EndpointEvent {
+  id: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  path: string
+  time: string         // human-relative, e.g. "2m ago"
+  receivedAt: string   // ISO timestamp
+  size: string        // e.g. "4.2 KB"
+  source: string       // origin IP
+  payload: string      // raw body
+  headers: Record<string, string>
+}
+
+ConnectedClient {
+  id: string
+  endpointId: string
+  name: string
+  localUrl: string     // e.g. "localhost:3000"
+  enabled: boolean
+}
+
+EventLogEntry {
+  id: string
+  endpointId: string
+  method: EndpointEvent["method"]
+  path: string
+  endpoint: string     // endpoint name
+  time: string
+  size: string
+}
+
+
+SUMMARY TABLE
+-------------
+
+Auth
+  POST   /auth/google
+  POST   /auth/github
+  POST   /auth/logout
+  GET    /auth/me
+  PUT    /profile
+  POST   /auth/change-password
+  DELETE /account
+  GET    /auth/connections
+  DELETE /auth/connections/:provider
+
+Workspace & Plan
+  GET    /workspace/plan
+  POST   /workspace/plan/downgrade
+  POST   /workspace/plan/upgrade
+  POST   /billing/contact-support
+
+Dashboard & Analytics
+  GET    /dashboard/stats
+  GET    /workspace/usage
+  GET    /workspace/usage/timeseries
+  GET    /events
+
+Endpoints
+  GET    /endpoints
+  POST   /endpoints
+  GET    /endpoints/:endpoint_id
+  PATCH  /endpoints/:endpoint_id/status
+  POST   /endpoints/:endpoint_id/delete-init
+  DELETE /endpoints/:endpoint_id
+
+Endpoint Events
+  GET    /endpoints/:endpoint_id/events
+  GET    /events/:event_id
+  POST   /endpoints/:endpoint_id/events/:event_id/publish
+
+Connected Clients
+  GET    /endpoints/:endpoint_id/clients
+  POST   /endpoints/:endpoint_id/clients/pairing
+  PATCH  /endpoints/:endpoint_id/clients/:client_id
+  DELETE /endpoints/:endpoint_id/clients/:client_id
+
+Webhook Ingestion (Public)
+  *      /w/:endpoint_id        (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS)
+
+Real-Time Inspection
+  GET    /ws/endpoints/:endpoint_id     (WebSocket upgrade handshake)
+  GET    /sse/endpoints/:endpoint_id/events   (SSE fallback)
+
+Billing
+  GET    /billing/payment-method
+  POST   /billing/payment-method
+  GET    /billing/invoices
+  GET    /billing/invoices/:invoice_id/download
+  POST   /billing/cancel-subscription
+
+External Webhooks
+  POST   /webhooks/paystack
+
+
+NOTES
+-----
+
+- The inspection screen (/e/inspect/:endpoint_id) requires a real-time
+  transport. WebSocket is preferred because it supports the explicit
+  HTTP Upgrade handshake (Connection: Upgrade → 101 Switching Protocols).
+
+- After the upgrade, the server pushes new EndpointEvent objects as
+  they arrive on the public webhook URL, eliminating the need for the
+  client to poll.
+
+- All authenticated API routes should require a Bearer token or
+  session cookie.
+
+- The public webhook receiver (/w/:endpoint_id) must NOT require
+  authentication so that third-party services can call it freely.
+
+- Subdomain-based endpoint URLs ({subdomain}.pigeon.sh) should be
+  handled at the DNS / reverse-proxy level and routed to the same
+  /w/:endpoint_id handler.
